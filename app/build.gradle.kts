@@ -30,6 +30,10 @@ android {
     }
 }
 dependencies {
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.material3)
