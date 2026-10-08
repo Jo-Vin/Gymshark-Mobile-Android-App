@@ -88,7 +88,7 @@ fun ProductImage(
 
 private enum class ImageState { Loading, Success, Unavailable }
 
-/** Accepts absolute HTTP(S) image references; Coil handles download and decoding errors. */
+/** Accepts absolute HTTPS image references; Coil handles download and decoding errors. */
 internal fun supportedImageUrl(value: String?): String? {
     val url = value?.trim()?.takeIf { it.isNotEmpty() } ?: return null
     val uri = try {
@@ -97,7 +97,7 @@ internal fun supportedImageUrl(value: String?): String? {
         return null
     }
     return url.takeIf {
-        uri.scheme?.lowercase() in setOf("http", "https") &&
+        uri.scheme.equals("https", ignoreCase = true) &&
             !uri.host.isNullOrBlank() && uri.rawUserInfo == null &&
             (uri.port == -1 || uri.port in 1..65535)
     }

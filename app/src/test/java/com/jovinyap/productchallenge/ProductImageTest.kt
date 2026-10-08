@@ -111,6 +111,14 @@ class ProductImageTest {
             .forEach { assertNull(supportedImageUrl(it)) }
     }
 
+    @Test fun `GS-MOB-008-4 HTTP URL shows fallback without starting a request`() {
+        show("http://example.com/photo.png")
+        assertFallback()
+        assertFalse(requested.isCompleted)
+        compose.onNodeWithTag("test_card").performClick()
+        assertEquals(1, clicks)
+    }
+
     @Test fun `GS-MOB-006-1 loading shows centred indeterminate progress`() {
         show("https://example.com/photo.png")
         assertLoading()
