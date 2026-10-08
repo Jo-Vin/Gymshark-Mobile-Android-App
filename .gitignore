@@ -3,11 +3,26 @@
 .kotlin/
 **/build/
 local.properties
+
+# IDE settings
 .idea/
 *.iml
+
+# Android generated files
 captures/
 .externalNativeBuild/
 .cxx/
+*.apk
+*.aab
+output-metadata.json
+
+# Logs and profiling
+*.log
+*.hprof
+
+# Signing keystores
 *.jks
 *.keystore
 
+# Local Google Services configuration
+google-services.json
