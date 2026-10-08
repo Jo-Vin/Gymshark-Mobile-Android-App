@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Product Challenge</string>
+    <string name="image_unavailable">Image Unavailable</string>
+    <string name="product_image_description">Photo of %1$s</string>
 </resources>
 
