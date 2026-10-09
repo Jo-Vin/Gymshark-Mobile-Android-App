@@ -142,6 +142,10 @@ private fun ProductCard(
             product.colour?.let {
                 Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+            Text(
+                text = formatGbpPrice(product.rawPrice),
+                style = MaterialTheme.typography.bodyMedium
+            )
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.product_label_spacing)),
                 verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.product_label_spacing))
