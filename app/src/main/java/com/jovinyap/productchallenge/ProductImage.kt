@@ -39,7 +39,9 @@ fun ProductImage(
     productTitle: String,
     modifier: Modifier = Modifier,
     imageAlt: String? = null,
-    imageLoader: ImageLoader = SingletonImageLoader.get(LocalContext.current)
+    imageLoader: ImageLoader = SingletonImageLoader.get(LocalContext.current),
+    aspectRatio: Float = 1f,
+    contentScale: ContentScale = ContentScale.Fit
 ) {
     val url = remember(imageUrl) { supportedImageUrl(imageUrl) }
     // Recreate request state when a recycled card receives a different image.
@@ -51,7 +53,7 @@ fun ProductImage(
             ?: stringResource(R.string.product_image_description, productTitle)
         // Every state uses this same square, preventing card layout jumps as requests complete.
         Box(
-            modifier = modifier.fillMaxWidth().aspectRatio(1f).testTag("product_image_area"),
+            modifier = modifier.fillMaxWidth().aspectRatio(aspectRatio).testTag("product_image_area"),
             contentAlignment = Alignment.Center
         ) {
             // Coil owns loading, sizing and caching; callbacks only update this component's UI state.
@@ -61,7 +63,7 @@ fun ProductImage(
                     imageLoader = imageLoader,
                     contentDescription = if (state == ImageState.Success) description else null,
                     modifier = Modifier.fillMaxSize().testTag("product_photo"),
-                    contentScale = ContentScale.Fit,
+                    contentScale = contentScale,
                     onLoading = { state = ImageState.Loading },
                     onSuccess = { state = ImageState.Success },
                     onError = { state = ImageState.Unavailable }
@@ -76,7 +78,7 @@ fun ProductImage(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Image(
-                        painter = painterResource(R.drawable.gymshark_logo),
+                        painter = painterResource(R.drawable.gymshark_logo_transparent),
                         // The nearby unavailable text explains the state, so the logo is decorative.
                         contentDescription = null,
                         modifier = Modifier.size(64.dp).testTag("product_image_logo")

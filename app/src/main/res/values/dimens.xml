@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <dimen name="catalogue_padding">16dp</dimen>
-    <dimen name="catalogue_spacing">12dp</dimen>
+    <dimen name="catalogue_spacing">4dp</dimen>
+    <dimen name="catalogue_grid_padding_vertical">8dp</dimen>
+    <dimen name="catalogue_row_spacing">20dp</dimen>
     <dimen name="catalogue_logo_width">48dp</dimen>
     <dimen name="catalogue_logo_height">32dp</dimen>
-    <dimen name="product_card_min_width">160dp</dimen>
-    <dimen name="product_card_padding">12dp</dimen>
+    <dimen name="product_card_min_width">140dp</dimen>
+    <dimen name="product_card_padding">8dp</dimen>
     <dimen name="product_card_selected_border">2dp</dimen>
     <dimen name="product_label_spacing">4dp</dimen>
     <dimen name="product_label_padding_horizontal">6dp</dimen>

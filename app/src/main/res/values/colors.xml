@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="catalogue_background">#FFFFFF</color>
+    <color name="catalogue_ink">#161616</color>
+    <color name="catalogue_secondary_text">#737373</color>
+    <color name="catalogue_divider">#E6E6E6</color>
+</resources>

@@ -6,7 +6,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.material3.MaterialTheme
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -22,7 +21,7 @@ class MainActivity : ComponentActivity() {
         }
         val viewModel = ViewModelProvider(this, factory)[ProductListViewModel::class.java]
         setContent {
-            MaterialTheme { ProductListRoute(viewModel) }
+            ProductCatalogueTheme { ProductListRoute(viewModel) }
         }
     }
 }

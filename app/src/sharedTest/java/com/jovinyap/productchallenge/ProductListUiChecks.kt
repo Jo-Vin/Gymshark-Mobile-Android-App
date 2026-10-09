@@ -3,7 +3,6 @@ package com.jovinyap.productchallenge
 import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.*
@@ -20,6 +19,10 @@ import kotlinx.coroutines.CompletableDeferred
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import org.junit.Rule
 import org.junit.Test
 
@@ -51,9 +54,12 @@ abstract class ProductListUiChecks {
         imageLoader.shutdown()
     }
 
-    private fun show(state: ProductListUiState, onRetry: () -> Unit = {}, onSelected: (String) -> Unit = {}) {
+    private fun show(state: ProductListUiState, onRetry: () -> Unit = {}, onSelected: (String) -> Unit = {}, fontScale: Float = 1f) {
         compose.setContent {
-            MaterialTheme { ProductListScreen(state, onRetry, onSelected, imageLoader = imageLoader) }
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
+                ProductCatalogueTheme { ProductListScreen(state, onRetry, onSelected, imageLoader = imageLoader) }
+            }
         }
     }
 
@@ -68,7 +74,7 @@ abstract class ProductListUiChecks {
 
     private fun showRoute(model: ProductListViewModel) {
         compose.setContent {
-            MaterialTheme { ProductListRoute(model, imageLoader = imageLoader) }
+            ProductCatalogueTheme { ProductListRoute(model, imageLoader = imageLoader) }
         }
     }
 
@@ -86,6 +92,37 @@ abstract class ProductListUiChecks {
         compose.onNodeWithTag("product_grid").performScrollToNode(hasTestTag("product_card_first"))
         compose.onNodeWithTag("product_card_first").assertHasClickAction().assertIsNotSelected()
         assertFalse(imageRequested.isCompleted)
+    }
+
+    @Test fun pricesAlignDespiteDifferentTitleColourAndFitLengths() {
+        // Partial GS-MOB-009/024 evidence: price presentation and normal-font alignment.
+        val longProduct = second.copy(
+            title = "Conditioning Club Washed Training Tank",
+            colour = "Haze Pink/Soft Brown/Wash", rawPrice = 65L, fit = "Oversized Fit"
+        )
+        show(ProductListUiState.Content(listOf(first, longProduct)))
+        val firstPrice = compose.onNodeWithText("£10.00", useUnmergedTree = true)
+        val secondPrice = compose.onNodeWithText("£0.65", useUnmergedTree = true)
+        firstPrice.performScrollTo().assertIsDisplayed()
+        secondPrice.assertIsDisplayed()
+        compose.onNodeWithText("Oversized Fit", useUnmergedTree = true).assertIsDisplayed()
+        assertEquals(firstPrice.fetchSemanticsNode().boundsInRoot.top,
+            secondPrice.fetchSemanticsNode().boundsInRoot.top, 1f)
+        val label = compose.onNodeWithText("new", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        val photo = compose.onNode(hasTestTag("product_image_area") and hasAnyAncestor(hasTestTag("product_card_first")),
+            useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        assertTrue("Labels belong inside the image", label.top >= photo.top && label.bottom <= photo.bottom)
+    }
+
+    @Test fun largeFontsUseOneColumnAndKeepPricesReachable() {
+        // Partial GS-MOB-024 evidence; this does not replace TalkBack or device font-setting checks.
+        show(ProductListUiState.Content(listOf(first, second.copy(rawPrice = 45L))), fontScale = 1.8f)
+        val firstCard = compose.onNodeWithTag("product_card_first").fetchSemanticsNode().boundsInRoot
+        val secondCard = compose.onNodeWithTag("product_card_second").fetchSemanticsNode().boundsInRoot
+        assertEquals(firstCard.left, secondCard.left, 1f)
+        assertTrue(secondCard.top > firstCard.top)
+        compose.onNodeWithText("£0.45", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("product_card_second").assertHasClickAction()
     }
 
     @Test fun loadingShowsIndeterminateProgressWithoutCards() {
