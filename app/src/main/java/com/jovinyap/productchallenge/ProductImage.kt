@@ -3,6 +3,7 @@ package com.jovinyap.productchallenge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -41,7 +42,8 @@ fun ProductImage(
     imageAlt: String? = null,
     imageLoader: ImageLoader = SingletonImageLoader.get(LocalContext.current),
     aspectRatio: Float = 1f,
-    contentScale: ContentScale = ContentScale.Fit
+    contentScale: ContentScale = ContentScale.Fit,
+    overlay: @Composable (BoxScope.() -> Unit)? = null
 ) {
     val url = remember(imageUrl) { supportedImageUrl(imageUrl) }
     // Recreate request state when a recycled card receives a different image.
@@ -87,6 +89,7 @@ fun ProductImage(
                 }
                 ImageState.Success -> Unit
             }
+            overlay?.invoke(this)
         }
     }
 }

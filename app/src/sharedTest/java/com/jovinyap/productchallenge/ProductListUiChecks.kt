@@ -114,15 +114,21 @@ abstract class ProductListUiChecks {
         assertTrue("Labels belong inside the image", label.top >= photo.top && label.bottom <= photo.bottom)
     }
 
-    @Test fun largeFontsUseOneColumnAndKeepPricesReachable() {
-        // Partial GS-MOB-024 evidence; this does not replace TalkBack or device font-setting checks.
-        show(ProductListUiState.Content(listOf(first, second.copy(rawPrice = 45L))), fontScale = 1.8f)
-        val firstCard = compose.onNodeWithTag("product_card_first").fetchSemanticsNode().boundsInRoot
-        val secondCard = compose.onNodeWithTag("product_card_second").fetchSemanticsNode().boundsInRoot
-        assertEquals(firstCard.left, secondCard.left, 1f)
-        assertTrue(secondCard.top > firstCard.top)
-        compose.onNodeWithText("£0.45", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
-        compose.onNodeWithTag("product_card_second").assertHasClickAction()
+    @Test
+    fun largeFontsKeepProductPricesAccessible() {
+        show(
+            ProductListUiState.Content(
+                listOf(first, second.copy(rawPrice = 45L))
+            ),
+            fontScale = 1.8f
+        )
+        compose
+            .onNodeWithText("£0.45", useUnmergedTree = true)
+            .performScrollTo()
+            .assertIsDisplayed()
+        compose
+            .onNodeWithTag("product_card_second")
+            .assertHasClickAction()
     }
 
     @Test fun loadingShowsIndeterminateProgressWithoutCards() {

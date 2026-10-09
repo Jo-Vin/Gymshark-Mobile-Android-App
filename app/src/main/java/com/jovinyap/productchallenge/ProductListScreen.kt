@@ -3,6 +3,8 @@ package com.jovinyap.productchallenge
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -95,25 +97,48 @@ fun ProductListScreen(
                     }
                     is ProductListUiState.Content -> {
                         // Keep adaptive columns at normal scale, but give large text a single readable column.
-                        LazyVerticalGrid(
-                            columns = if (fontScale >= LARGE_FONT_SCALE_THRESHOLD) {
-                                GridCells.Fixed(1)
-                            } else {
-                                GridCells.Adaptive(dimensionResource(R.dimen.product_card_min_width))
-                            },
-                            modifier = Modifier.fillMaxSize().testTag("product_grid"),
-                            contentPadding = PaddingValues(padding),
-                            horizontalArrangement = Arrangement.spacedBy(spacing),
-                            verticalArrangement = Arrangement.spacedBy(spacing)
-                        ) {
-                            // Stable product IDs keep each image and card attached to the correct record.
-                            items(uiState.products, key = { it.id }) { product ->
-                                ProductCard(
-                                    product,
-                                    selected = product.id == uiState.selectedProductId,
-                                    onProductSelected = onProductSelected,
-                                    imageLoader = imageLoader
-                                )
+                        if (fontScale >= LARGE_FONT_SCALE_THRESHOLD) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .verticalScroll(rememberScrollState())
+                                    .testTag("product_grid"),
+                            ) {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(spacing)
+                                ) {
+                                    uiState.products.forEach { product ->
+                                        ProductCard(
+                                            product,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = padding),
+                                            selected = product.id == uiState.selectedProductId,
+                                            onProductSelected = onProductSelected,
+                                            imageLoader = imageLoader
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            LazyVerticalGrid(
+                                columns = GridCells.Adaptive(dimensionResource(R.dimen.product_card_min_width)),
+                                modifier = Modifier.fillMaxSize().testTag("product_grid"),
+                                contentPadding = PaddingValues(padding),
+                                horizontalArrangement = Arrangement.spacedBy(spacing),
+                                verticalArrangement = Arrangement.spacedBy(spacing)
+                            ) {
+                                // Stable product IDs keep each image and card attached to the correct record.
+                                items(uiState.products, key = { it.id }) { product ->
+                                    ProductCard(
+                                        product,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        selected = product.id == uiState.selectedProductId,
+                                        onProductSelected = onProductSelected,
+                                        imageLoader = imageLoader
+                                    )
+                                }
                             }
                         }
                     }
@@ -126,12 +151,13 @@ fun ProductListScreen(
 @Composable
 private fun ProductCard(
     product: Product,
+    modifier: Modifier = Modifier,
     selected: Boolean,
     onProductSelected: (String) -> Unit,
     imageLoader: ImageLoader
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth().testTag("product_card_${product.id}")
+        modifier = modifier.testTag("product_card_${product.id}")
             // Selection is conveyed through semantics, not encoded in the test tag.
             .selectable(selected = selected, role = Role.Button, onClick = { onProductSelected(product.id) }),
         border = if (selected) BorderStroke(
@@ -139,7 +165,34 @@ private fun ProductCard(
         ) else null
     ) {
         // Image loading is independent of selection: fallback cards remain selectable.
-        ProductImage(product.imageUrl, product.title, imageAlt = product.imageAlt, imageLoader = imageLoader)
+        ProductImage(
+            imageUrl = product.imageUrl,
+            productTitle = product.title,
+            imageAlt = product.imageAlt,
+            imageLoader = imageLoader,
+            overlay = {
+                FlowRow(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(dimensionResource(R.dimen.product_card_padding)),
+                    horizontalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.product_label_spacing)),
+                    verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.product_label_spacing))
+                ) {
+                    product.labels.forEach { label ->
+                        Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.small) {
+                            Text(
+                                label,
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.padding(
+                                    horizontal = dimensionResource(R.dimen.product_label_padding_horizontal),
+                                    vertical = dimensionResource(R.dimen.product_label_padding_vertical)
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+        )
         Column(
             modifier = Modifier.padding(dimensionResource(R.dimen.product_card_padding)),
             verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.product_label_spacing))
@@ -154,7 +207,7 @@ private fun ProductCard(
                 overflow = TextOverflow.Ellipsis
             )
             Text(
-                text = product.fit.orEmpty(),
+                text = product.fit ?: " ",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -164,23 +217,6 @@ private fun ProductCard(
                 text = formatGbpPrice(product.rawPrice),
                 style = MaterialTheme.typography.bodyMedium
             )
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.product_label_spacing)),
-                verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.product_label_spacing))
-            ) {
-                product.labels.forEach { label ->
-                    Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.small) {
-                        Text(
-                            label,
-                            style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier.padding(
-                                horizontal = dimensionResource(R.dimen.product_label_padding_horizontal),
-                                vertical = dimensionResource(R.dimen.product_label_padding_vertical)
-                            )
-                        )
-                    }
-                }
-            }
         }
     }
 }
