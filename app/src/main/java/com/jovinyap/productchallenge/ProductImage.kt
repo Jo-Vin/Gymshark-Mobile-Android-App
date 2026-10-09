@@ -78,7 +78,7 @@ fun ProductImage(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Image(
-                        painter = painterResource(R.drawable.gymshark_logo_transparent),
+                        painter = painterResource(R.drawable.gymshark_logo),
                         // The nearby unavailable text explains the state, so the logo is decorative.
                         contentDescription = null,
                         modifier = Modifier.size(64.dp).testTag("product_image_logo")
