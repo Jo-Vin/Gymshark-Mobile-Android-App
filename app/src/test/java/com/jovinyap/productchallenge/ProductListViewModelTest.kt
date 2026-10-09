@@ -80,7 +80,7 @@ class ProductListViewModelTest {
 
     @Test
     fun loadingTransitionsToErrorOnDecodingFailure() = runTest {
-        // Partial evidence for GS-MOB-015; resource text and retry rendering need UI tests.
+        // Partial evidence for GS-MOB-015; resource text and retry rendering are checked separately in ProductListUiChecks.
         val repository = ControlledRepository()
         val response = repository.nextResponse()
         val viewModel = create(repository)
@@ -95,7 +95,7 @@ class ProductListViewModelTest {
 
     @Test
     fun retryTransitionsFromErrorThroughLoadingToContent() = runTest {
-        // Partial evidence for GS-MOB-015; no retry button is rendered in this increment.
+        // Partial evidence for GS-MOB-015; this test verifies state only; ProductListUiChecks verifies the retry button.
         val repository = ControlledRepository()
         val first = repository.nextResponse()
         val second = repository.nextResponse()
@@ -123,7 +123,7 @@ class ProductListViewModelTest {
 
     @Test
     fun emptyCatalogueTransitionsToEmptyInsteadOfContent() = runTest {
-        // Partial evidence for GS-MOB-015; the empty-screen message remains stage 5.
+        // Partial evidence for GS-MOB-015; ProductListUiChecks separately verifies the empty-screen message.
         val repository = ControlledRepository()
         val response = repository.nextResponse()
         val viewModel = create(repository)
@@ -198,6 +198,50 @@ class ProductListViewModelTest {
         assertTrue(repository.cancelled)
         assertTrue(loadingJob.isCancelled)
         assertEquals(ProductListUiState.Loading, viewModel.uiState.value)
+    }
+
+    @Test
+    fun selectingKnownProductUpdatesOnlySelectionState() = runTest {
+        val repository = ControlledRepository()
+        val response = repository.nextResponse()
+        val other = product.copy(id = "second", title = "Training Shorts")
+        val viewModel = create(repository)
+        response.complete(listOf(product, other))
+        advanceUntilIdle()
+        assertEquals(ProductListUiState.Content(listOf(product, other)), viewModel.uiState.value)
+
+        viewModel.selectProduct("second")
+
+        assertEquals(ProductListUiState.Content(listOf(product, other), "second"), viewModel.uiState.value)
+        assertEquals(1, repository.callCount)
+    }
+
+    @Test
+    fun selectingUnknownProductLeavesContentUnchanged() = runTest {
+        val repository = ControlledRepository()
+        val response = repository.nextResponse()
+        val viewModel = create(repository)
+        response.complete(listOf(product))
+        advanceUntilIdle()
+        val before = viewModel.uiState.value
+
+        viewModel.selectProduct("unknown")
+
+        assertEquals(before, viewModel.uiState.value)
+        assertEquals(1, repository.callCount)
+    }
+
+    @Test
+    fun selectingProductWhileLoadingDoesNotChangeStateOrStartRequests() = runTest {
+        val repository = ControlledRepository()
+        repository.nextResponse()
+        val viewModel = create(repository)
+        runCurrent()
+
+        viewModel.selectProduct(product.id)
+
+        assertEquals(ProductListUiState.Loading, viewModel.uiState.value)
+        assertEquals(1, repository.callCount)
     }
 
     /** Each deferred response stays pending until the test supplies products or an error. */

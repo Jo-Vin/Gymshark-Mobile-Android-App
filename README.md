@@ -5,17 +5,16 @@ built with Kotlin and Jetpack Compose.
 
 ## Current status
 
-The initial application foundation is implemented.
+Stages 1–5 connect catalogue retrieval, screen state and the Compose product grid.
 
 - Single Android app module.
-- Compose launch screen displaying "Product Challenge".
+- Adaptive Compose grid displaying product images, titles, colours and labels.
 - Robolectric smoke test.
-- Catalogue ViewModel with loading, content, empty, error and retry state; screen wiring is next.
-- Android lint passed locally.
-- Unit tests, Android lint and debug assembly pass locally; device verification remains outstanding.
+- Catalogue ViewModel with loading, content, empty, error, retry and product selection.
+- Shared Compose behaviour checks run with Robolectric and on a connected Android device.
 - GitHub Actions verification is being configured.
 
-Product-list and product-detail functionality are the next implementation steps.
+Product details and HTML description rendering are the next increment.
 
 ## Requirements
 
@@ -33,7 +32,7 @@ test-driven development.
 ## Setup
 
 1. Open the repository in Android Studio.
-2. Configure the Gradle JDK as JDK 17.
+2. Configure the Gradle JDK as JDK 17 or 21 (local verification uses JDK 21).
 3. Install Android SDK Platform 36 and Build Tools 35.0.0.
 4. Allow Gradle to sync.
 5. Select an emulator or connected Android device and run the app.
@@ -60,6 +59,7 @@ From PowerShell in the repository root:
 .\gradlew.bat :app:testDebugUnitTest
 .\gradlew.bat :app:lintDebug
 .\gradlew.bat :app:assembleDebug
+.\gradlew.bat :app:connectedDebugAndroidTest # Requires an available device or emulator
 ```
 
 On macOS or Linux, use ./gradlew instead of .\gradlew.bat.
@@ -97,13 +97,28 @@ evidence for retrieval and decoding, not live CDN availability or UI behaviour.
 network or decoding failure, and cancels work when cleared. Tests control responses
 with a fake repository and a test main dispatcher, without network calls or delays.
 
-Stage 4 manages state only: `MainActivity` still displays the placeholder. Stage 5
-will construct the real repository, obtain the ViewModel and render its states in
-the product list. There is no persistent catalogue cache, and live-device network
-verification remains outstanding.
+`ProductApplication` owns the real repository and one shared OkHttp client.
+`MainActivity` obtains a retained ViewModel through `ViewModelProvider`.
+`ProductListRoute` observes state with `collectAsStateWithLifecycle`, while
+`ProductListScreen` renders states and sends retry/selection callbacks. Cards use
+stable product IDs and the existing `ProductImage` component; image loading or
+failure does not prevent selection. Selecting a card highlights it and records
+its ID; navigation and details remain stage 6.
+
+`ProductListUiChecks` is shared between the Robolectric and instrumented runners.
+It controls repository responses and image results locally, checking content,
+loading, empty/error/retry, scrolling, selection and image accessibility. Existing
+GS-MOB references provide partial component evidence, not full assessment
+verification, real CDN reliability, TalkBack usability or visual correctness.
+A manual check on the connected Samsung Android 16 phone confirmed that the real
+catalogue and product photos load. Automated tests still use fake responses.
+Local verification completed 58 unit tests, lint (warnings only) and debug assembly.
+All eight instrumented checks passed on the unlocked phone. A subsequent run was
+blocked by the locked phone and needs repeating with the screen unlocked.
+No persistent catalogue cache is implemented.
 
 ## Assumptions and decisions
 
 - Currency, price units and product-versus-variant pricing are awaiting clarification.
-- Pricing assumptions will be recorded before implementing price display.
+- Prices are omitted from the grid until currency and units are confirmed.
 - Search, filters, checkout and authentication are outside the required scope.
