@@ -49,10 +49,12 @@ fun ProductImage(
         }
         val description = imageAlt?.takeIf { it.isNotBlank() }
             ?: stringResource(R.string.product_image_description, productTitle)
+        // Every state uses this same square, preventing card layout jumps as requests complete.
         Box(
             modifier = modifier.fillMaxWidth().aspectRatio(1f).testTag("product_image_area"),
             contentAlignment = Alignment.Center
         ) {
+            // Coil owns loading, sizing and caching; callbacks only update this component's UI state.
             if (url != null) {
                 AsyncImage(
                     model = url,
@@ -75,6 +77,7 @@ fun ProductImage(
                 ) {
                     Image(
                         painter = painterResource(R.drawable.gymshark_logo),
+                        // The nearby unavailable text explains the state, so the logo is decorative.
                         contentDescription = null,
                         modifier = Modifier.size(64.dp).testTag("product_image_logo")
                     )
@@ -96,6 +99,7 @@ internal fun supportedImageUrl(value: String?): String? {
     } catch (_: java.net.URISyntaxException) {
         return null
     }
+    // Only HTTPS is supported; do not start requests that rely on cleartext HTTP traffic.
     return url.takeIf {
         uri.scheme.equals("https", ignoreCase = true) &&
             !uri.host.isNullOrBlank() && uri.rawUserInfo == null &&

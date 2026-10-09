@@ -4,6 +4,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 
+/** Raw API record: optional fields are preserved for the mapper to validate. DTO means data transfer object. */
 @Serializable
 data class ProductDto(
     val id: Long? = null,
@@ -39,14 +40,17 @@ data class ProductVariantDto(
     val sku: String? = null
 )
 
+// hits is required: a missing catalogue is different from a valid empty catalogue.
 @Serializable
 data class ProductResponse(
     val hits: List<ProductDto>
 )
 
+/** Decodes JSON into response records without applying display rules or downloading images. */
 class ProductPayloadParser {
 
     private val decoder = Json {
+        // Extra API fields are allowed, but malformed JSON and incorrect modelled types still fail.
         ignoreUnknownKeys = true
     }
 

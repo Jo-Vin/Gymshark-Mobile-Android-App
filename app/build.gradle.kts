@@ -30,6 +30,9 @@ android {
     }
 }
 dependencies {
+    implementation(libs.okhttp)
+    implementation(libs.kotlinx.coroutines.core)
+    testImplementation(libs.kotlinx.coroutines.test)
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
     testImplementation(libs.androidx.compose.ui.test.junit4)
