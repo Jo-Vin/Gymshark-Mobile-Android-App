@@ -8,6 +8,13 @@ class ProductMapperTest {
 
     private val mapper = ProductMapper()
 
+    @Test
+    fun fitIsNormalisedWithoutInventingMissingValues() {
+        assertEquals("Oversized Fit", requireNotNull(mapper.map(validDto().copy(fit = " Oversized Fit "))).fit)
+        assertNull(requireNotNull(mapper.map(validDto().copy(fit = " "))).fit)
+        assertNull(requireNotNull(mapper.map(validDto())).fit)
+    }
+
     private fun validDto() = ProductDto(
         id = 6732609257571L,
         title = "Speed Leggings",

@@ -3,5 +3,10 @@
     <string name="app_name">Product Challenge</string>
     <string name="image_unavailable">Image Unavailable</string>
     <string name="product_image_description">Photo of %1$s</string>
+    <string name="catalogue_title">Products</string>
+    <string name="catalogue_loading">Loading products…</string>
+    <string name="catalogue_empty">No products available.</string>
+    <string name="catalogue_error">Products couldn’t be loaded.</string>
+    <string name="catalogue_retry">Retry</string>
 </resources>
 

@@ -37,7 +37,8 @@ class ProductMapper {
             descriptionHtml = dto.description,
             imageUrl = image?.src.nonBlank(),
             imageAlt = image?.alt.nonBlank(),
-            labels = dto.labels.orEmpty()
+            labels = dto.labels.orEmpty(),
+            fit = dto.fit.nonBlank()
         )
     }
 

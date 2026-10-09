@@ -11,7 +11,7 @@ import kotlinx.serialization.SerializationException
 
 /**
  * Owns catalogue state and retry handling, using the existing repository contract.
- * Loading starts once on creation. The future screen observes state and sends user actions here.
+ * Loading starts once on creation. The screen observes state and sends user actions here.
  */
 class ProductListViewModel(private val repository: ProductRepository) : ViewModel() {
     // Only this ViewModel can write state; consumers receive a read-only StateFlow.
@@ -26,6 +26,14 @@ class ProductListViewModel(private val repository: ProductRepository) : ViewMode
     fun retry() {
         if (mutableUiState.value == ProductListUiState.Error) {
             loadProducts()
+        }
+    }
+
+    /** Keep only a known product ID selected; downloading and detail navigation are separate concerns. */
+    fun selectProduct(productId: String) {
+        val content = mutableUiState.value as? ProductListUiState.Content ?: return
+        if (content.products.any { it.id == productId }) {
+            mutableUiState.value = content.copy(selectedProductId = productId)
         }
     }
 

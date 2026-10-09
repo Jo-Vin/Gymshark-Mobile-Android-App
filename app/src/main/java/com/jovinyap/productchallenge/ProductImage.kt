@@ -3,6 +3,7 @@ package com.jovinyap.productchallenge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -39,7 +40,10 @@ fun ProductImage(
     productTitle: String,
     modifier: Modifier = Modifier,
     imageAlt: String? = null,
-    imageLoader: ImageLoader = SingletonImageLoader.get(LocalContext.current)
+    imageLoader: ImageLoader = SingletonImageLoader.get(LocalContext.current),
+    aspectRatio: Float = 1f,
+    contentScale: ContentScale = ContentScale.Fit,
+    overlay: @Composable (BoxScope.() -> Unit)? = null
 ) {
     val url = remember(imageUrl) { supportedImageUrl(imageUrl) }
     // Recreate request state when a recycled card receives a different image.
@@ -51,7 +55,7 @@ fun ProductImage(
             ?: stringResource(R.string.product_image_description, productTitle)
         // Every state uses this same square, preventing card layout jumps as requests complete.
         Box(
-            modifier = modifier.fillMaxWidth().aspectRatio(1f).testTag("product_image_area"),
+            modifier = modifier.fillMaxWidth().aspectRatio(aspectRatio).testTag("product_image_area"),
             contentAlignment = Alignment.Center
         ) {
             // Coil owns loading, sizing and caching; callbacks only update this component's UI state.
@@ -61,7 +65,7 @@ fun ProductImage(
                     imageLoader = imageLoader,
                     contentDescription = if (state == ImageState.Success) description else null,
                     modifier = Modifier.fillMaxSize().testTag("product_photo"),
-                    contentScale = ContentScale.Fit,
+                    contentScale = contentScale,
                     onLoading = { state = ImageState.Loading },
                     onSuccess = { state = ImageState.Success },
                     onError = { state = ImageState.Unavailable }
@@ -85,6 +89,7 @@ fun ProductImage(
                 }
                 ImageState.Success -> Unit
             }
+            overlay?.invoke(this)
         }
     }
 }
