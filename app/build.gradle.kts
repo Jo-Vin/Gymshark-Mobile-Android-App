@@ -30,6 +30,7 @@ android {
     }
 }
 dependencies {
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
     implementation(libs.okhttp)
     implementation(libs.kotlinx.coroutines.core)
     testImplementation(libs.kotlinx.coroutines.test)

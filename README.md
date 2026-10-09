@@ -10,6 +10,7 @@ The initial application foundation is implemented.
 - Single Android app module.
 - Compose launch screen displaying "Product Challenge".
 - Robolectric smoke test.
+- Catalogue ViewModel with loading, content, empty, error and retry state; screen wiring is next.
 - Android lint passed locally.
 - Unit tests, Android lint and debug assembly pass locally; device verification remains outstanding.
 - GitHub Actions verification is being configured.
@@ -91,8 +92,15 @@ continues to exclude unusable records according to its existing policy.
 Repository tests use the local saved JSON fixture and controlled callbacks, never
 the live endpoint. Their GS-MOB-001 and GS-MOB-002 references provide partial
 evidence for retrieval and decoding, not live CDN availability or UI behaviour.
-The repository is not yet connected to a ViewModel or product list. There is no
-persistent catalogue cache, and live-device network verification remains outstanding.
+`ProductListViewModel` now consumes the repository contract and exposes read-only
+`StateFlow<ProductListUiState>`. It loads once on creation, supports retry after
+network or decoding failure, and cancels work when cleared. Tests control responses
+with a fake repository and a test main dispatcher, without network calls or delays.
+
+Stage 4 manages state only: `MainActivity` still displays the placeholder. Stage 5
+will construct the real repository, obtain the ViewModel and render its states in
+the product list. There is no persistent catalogue cache, and live-device network
+verification remains outstanding.
 
 ## Assumptions and decisions
 
