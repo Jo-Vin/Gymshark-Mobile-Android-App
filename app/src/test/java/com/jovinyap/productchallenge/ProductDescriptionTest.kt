@@ -21,6 +21,16 @@ class ProductDescriptionTest {
     }
 
     @Test
+    // GS-MOB-014: model height and size are extracted only when both are present.
+    fun modelInformationIsExtractedForImageOverlay() {
+        assertEquals(
+            ModelInformation("5'7\"", "XS"),
+            extractModelInformation("<p>- Model is 5'7\" and wears a size XS</p>")
+        )
+        assertTrue(extractModelInformation("<p>- Model is not supplied</p>").isNull())
+    }
+
+    @Test
     // GS-MOB-014: absent or irrelevant description content has an explicit empty result.
     fun missingOrTranslatorOnlyDescriptionIsUnavailable() {
         assertTrue(readableProductDescription(null).isNullOrBlank())

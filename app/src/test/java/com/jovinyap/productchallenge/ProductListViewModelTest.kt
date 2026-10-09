@@ -15,6 +15,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 
@@ -272,6 +273,9 @@ class ProductListViewModelTest {
         assertEquals("small", state.selectedVariantId)
         viewModel.selectVariant(withVariants.id, "unknown")
         assertEquals("small", (viewModel.uiState.value as ProductListUiState.Content).selectedVariantId)
+
+        viewModel.selectProduct(withVariants.id)
+        assertNull((viewModel.uiState.value as ProductListUiState.Content).selectedVariantId)
     }
 
     @Test

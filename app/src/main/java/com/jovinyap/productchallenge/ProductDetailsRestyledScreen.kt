@@ -34,6 +34,7 @@ import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
@@ -41,7 +42,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.ImageLoader
-import java.util.Locale
 
 private const val DETAIL_IMAGE_ASPECT_RATIO = 0.82f
 
@@ -118,8 +118,7 @@ private fun ProductDetailsContent(
 ) {
     val selectedVariant = product.variants.firstOrNull { it.id == selectedVariantId }
     val displayedPrice = selectedVariant?.rawPrice ?: if (selectedVariant == null) product.rawPrice else null
-    var descriptionExpanded by remember(product.id) { mutableStateOf(false) }
-
+    val modelInformation = remember(product.descriptionHtml) { extractModelInformation(product.descriptionHtml) }
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).navigationBarsPadding(),
         verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.catalogue_spacing))
@@ -129,7 +128,27 @@ private fun ProductDetailsContent(
             productTitle = product.title,
             imageAlt = product.imageAlt,
             imageLoader = imageLoader,
-            aspectRatio = DETAIL_IMAGE_ASPECT_RATIO
+            aspectRatio = DETAIL_IMAGE_ASPECT_RATIO,
+            overlay = {
+                modelInformation?.let { information ->
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 12.dp),
+                        color = MaterialTheme.colorScheme.surface
+                    ) {
+                        Text(
+                            text = stringResource(
+                                R.string.product_model_information,
+                                information.height,
+                                information.size
+                            ),
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
+                }
+            }
         )
         Column(
             modifier = Modifier.padding(horizontal = dimensionResource(R.dimen.catalogue_padding)),
@@ -146,7 +165,6 @@ private fun ProductDetailsContent(
                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
             )
             if (product.variants.isNotEmpty()) {
-                Text(stringResource(R.string.product_size_label), style = MaterialTheme.typography.titleMedium)
                 VariantSelector(product, selectedVariantId, onVariantSelected)
             }
             ProductDescriptionSection(product.descriptionHtml)
@@ -167,45 +185,79 @@ private fun ProductBadge(label: String) {
 
 @Composable
 private fun VariantSelector(product: Product, selectedVariantId: String?, onVariantSelected: (String) -> Unit) {
-    FlowRow(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.product_label_spacing)),
-        verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.product_label_spacing))
-    ) {
-        product.variants.forEach { variant ->
-            val enabled = variant.inStock != false
-            val selected = variant.id == selectedVariantId
-            Column(
-                modifier = Modifier
-                    .defaultMinSize(
-                        minWidth = dimensionResource(R.dimen.product_variant_min_width),
-                        minHeight = dimensionResource(R.dimen.product_variant_touch_target)
-                    )
-                    .toggleable(
-                        value = selected,
-                        enabled = enabled,
-                        role = Role.RadioButton,
-                        onValueChange = { if (it) onVariantSelected(variant.id) }
-                    ),
-                horizontalAlignment = Alignment.CenterHorizontally
+    Column(verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.product_label_spacing))) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(stringResource(R.string.product_size_label), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        ) {
+            FlowRow(
+                modifier = Modifier.padding(horizontal = dimensionResource(R.dimen.product_card_padding), vertical = 20.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.product_label_spacing))
             ) {
-                Surface(
-                    color = MaterialTheme.colorScheme.surface,
-                    border = BorderStroke(
-                        1.dp,
-                        if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.outlineVariant
-                    ),
-                    shape = MaterialTheme.shapes.small,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        variant.size.uppercase(Locale.ROOT),
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-                        textAlign = TextAlign.Center,
-                        color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                productSizeOptions(product.variants).forEach { option ->
+                    val variant = option.variant
+                    val enabled = variant?.inStock == true
+                    val selected = variant?.id == selectedVariantId
+                    val availability = if (variant == null) {
+                        R.string.product_size_unavailable_missing
+                    } else if (enabled) {
+                        R.string.product_size_available
+                    } else {
+                        R.string.product_size_unavailable
+                    }
+                    val availabilityDescription = stringResource(availability)
+                    val optionModifier = Modifier
+                        .defaultMinSize(
+                            minWidth = dimensionResource(R.dimen.product_variant_min_width),
+                            minHeight = dimensionResource(R.dimen.product_variant_touch_target)
+                        )
+                        .then(
+                            if (variant == null) {
+                                Modifier.semantics {
+                                    disabled()
+                                    stateDescription = availabilityDescription
+                                }
+                            } else {
+                                Modifier.toggleable(
+                                    value = selected,
+                                    enabled = enabled,
+                                    role = Role.RadioButton,
+                                    onValueChange = { if (it) onVariantSelected(variant.id) }
+                                ).semantics {
+                                    stateDescription = availabilityDescription
+                                }
+                            }
+                        )
+                    Surface(
+                        modifier = optionModifier.testTag("product_size_option_${option.label}"),
+                        color = if (selected) {
+                            MaterialTheme.colorScheme.onSurface
+                        } else {
+                            MaterialTheme.colorScheme.surface
+                        }
+                    ) {
+                        Text(
+                            option.label,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 12.dp),
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                            textAlign = TextAlign.Center,
+                            color = when {
+                                selected -> MaterialTheme.colorScheme.surface
+                                enabled -> MaterialTheme.colorScheme.onSurface
+                                else -> MaterialTheme.colorScheme.onSurfaceVariant
+                            }
+                        )
+                    }
                 }
-                if (!enabled) Text(stringResource(R.string.product_variant_unavailable), style = MaterialTheme.typography.labelSmall)
             }
         }
     }
@@ -213,7 +265,7 @@ private fun VariantSelector(product: Product, selectedVariantId: String?, onVari
 
 @Composable
 private fun ProductDescriptionSection(html: String?) {
-    var expanded by remember { mutableStateOf(false) }
+    var expanded by remember { mutableStateOf(true) }
     val stateDescription = stringResource(
         if (expanded) R.string.product_description_expanded else R.string.product_description_collapsed
     )

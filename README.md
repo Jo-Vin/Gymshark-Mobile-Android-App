@@ -121,6 +121,9 @@ The detail presentation uses a fixed safe app bar, a full-width portrait image,
 wrapped outlined size controls and a collapsed Description section. Screenshot-only
 features such as reviews, wishlist, sharing, checkout, delivery claims and
 recommendations remain intentionally unsupported.
+The detail selector assumes the assessment baseline sizes XS, S, M, L, XL and XXL;
+payload sizes outside that range are appended in payload order. A size is selectable
+only when its variant explicitly reports `inStock: true`.
 
 `ProductListUiChecks` is shared between the Robolectric and instrumented runners.
 It controls repository responses and image results locally, checking content,

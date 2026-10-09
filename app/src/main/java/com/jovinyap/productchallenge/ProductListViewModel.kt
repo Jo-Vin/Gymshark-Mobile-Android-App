@@ -33,7 +33,10 @@ class ProductListViewModel(private val repository: ProductRepository) : ViewMode
     fun selectProduct(productId: String) {
         val content = mutableUiState.value as? ProductListUiState.Content ?: return
         if (content.products.any { it.id == productId }) {
-            mutableUiState.value = content.copy(selectedProductId = productId)
+            mutableUiState.value = content.copy(
+                selectedProductId = productId,
+                selectedVariantId = null
+            )
         }
     }
 

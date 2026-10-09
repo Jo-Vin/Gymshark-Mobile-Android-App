@@ -1,6 +1,7 @@
 package com.jovinyap.productchallenge
 
 import android.content.Context
+import androidx.compose.ui.test.assertDoesNotExist
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -45,6 +46,9 @@ class ProductDetailsScreenTest {
         }
 
         compose.onNodeWithText("Speed Leggings").assertIsDisplayed()
+        compose.onNodeWithText("Comfort & support 😀\n\nMove freely").assertIsDisplayed()
+        compose.onNodeWithTag("product_description_toggle").performClick()
+        compose.onNodeWithText("Comfort & support 😀\n\nMove freely").assertDoesNotExist()
         compose.onNodeWithTag("product_description_toggle").performClick()
         compose.onNodeWithText("£45.00").assertIsDisplayed()
         compose.onNodeWithText("Comfort & support 😀\n\nMove freely").assertIsDisplayed()
