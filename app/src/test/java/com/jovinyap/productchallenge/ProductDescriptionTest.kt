@@ -2,6 +2,7 @@ package com.jovinyap.productchallenge
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -10,10 +11,10 @@ class ProductDescriptionTest {
     @Test
     // GS-MOB-014: readable product description content is produced without executable markup.
     fun readableDescriptionPreservesParagraphsEntitiesAndUnicodeWithoutScripts() {
-        val result = readableProductDescription(
+        val result = requireNotNull(readableProductDescription(
             "<p>Comfort &amp; support 😀</p><p><strong>Move freely</strong><br>every day</p>" +
                 "<script>alert('not product copy')</script><style>.x{display:none}</style>"
-        )
+        ))
 
         assertEquals("Comfort & support 😀\n\nMove freely\nevery day", result)
         assertFalse(result.contains("alert"))
@@ -27,7 +28,7 @@ class ProductDescriptionTest {
             ModelInformation("5'7\"", "XS"),
             extractModelInformation("<p>- Model is 5'7\" and wears a size XS</p>")
         )
-        assertTrue(extractModelInformation("<p>- Model is not supplied</p>").isNull())
+        assertNull(extractModelInformation("<p>- Model is not supplied</p>"))
     }
 
     @Test
