@@ -72,6 +72,31 @@ class ProductMapperTest {
             product.imageUrl
         )
         assertEquals("Product front", product.imageAlt)
+        assertEquals(
+            listOf(ProductVariant("s", "s", 45L, null)),
+            product.variants
+        )
+    }
+
+    @Test
+    // GS-MOB-013: variant identity and nullable variant pricing survive mapping.
+    fun variantsKeepStableIdentifiersAndNullablePrices() {
+        val product = requireNotNull(
+            mapper.map(
+                validDto().copy(
+                    availableSizes = listOf(
+                        ProductVariantDto(id = 10L, size = "S", price = 4500L, inStock = true),
+                        ProductVariantDto(id = 11L, size = "M", price = null, inStock = false)
+                    )
+                )
+            )
+        )
+
+        assertEquals("10", product.variants[0].id)
+        assertEquals("S", product.variants[0].size)
+        assertEquals(4500L, product.variants[0].rawPrice)
+        assertEquals("11", product.variants[1].id)
+        assertNull(product.variants[1].rawPrice)
     }
 
     @Test

@@ -173,7 +173,7 @@ abstract class ProductListUiChecks {
         compose.onNodeWithTag("catalogue_progress").assertDoesNotExist()
     }
 
-    @Test fun selectingCardMarksTheCorrectProductAndKeepsOtherCardsUsable() {
+    @Test fun selectingCardOpensTheCorrectProductAndBackReturnsToTheSelectedCard() {
         val model = viewModel(object : ProductRepository {
             override suspend fun fetchProducts() = listOf(first, second)
         })
@@ -184,6 +184,9 @@ abstract class ProductListUiChecks {
 
         compose.onNodeWithTag("product_card_second").performClick()
 
+        compose.onNodeWithText("Training Shorts", useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithTag("product_details_back").performClick()
+        compose.onNodeWithTag("product_grid").performScrollToNode(hasTestTag("product_card_second"))
         compose.onNodeWithTag("product_card_second").assertIsSelected()
         compose.onNodeWithTag("product_grid").performScrollToNode(hasTestTag("product_card_first"))
         compose.onNodeWithTag("product_card_first").assertIsNotSelected().assertHasClickAction()

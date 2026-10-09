@@ -8,5 +8,14 @@
     <string name="catalogue_empty">No products available.</string>
     <string name="catalogue_error">Products couldn’t be loaded.</string>
     <string name="catalogue_retry">Retry</string>
+    <string name="product_details_back">Back to products</string>
+    <string name="product_details_unavailable">This product is no longer available.</string>
+    <string name="product_price_unavailable">Price unavailable for this variant.</string>
+    <string name="product_size_label">Size</string>
+    <string name="product_variant_unavailable">Unavailable</string>
+    <string name="product_description_heading">Description</string>
+    <string name="product_description_unavailable">No description available.</string>
+    <string name="product_description_expanded">Expanded</string>
+    <string name="product_description_collapsed">Collapsed</string>
 </resources>
 
