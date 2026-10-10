@@ -38,7 +38,12 @@ class ProductMapper {
             imageUrl = image?.src.nonBlank(),
             imageAlt = image?.alt.nonBlank(),
             labels = dto.labels.orEmpty(),
-            fit = dto.fit.nonBlank()
+            fit = dto.fit.nonBlank(),
+            variants = dto.availableSizes.orEmpty().mapNotNull { variant ->
+                val size = variant.size.nonBlank() ?: return@mapNotNull null
+                val variantId = variant.id?.toString() ?: variant.sku.nonBlank() ?: size
+                ProductVariant(variantId, size, variant.price, variant.inStock)
+            }
         )
     }
 

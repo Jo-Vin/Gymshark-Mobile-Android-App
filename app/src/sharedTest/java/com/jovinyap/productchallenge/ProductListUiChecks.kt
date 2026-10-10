@@ -87,7 +87,10 @@ abstract class ProductListUiChecks {
         compose.onNodeWithText("new", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
         compose.onNode(hasText(context.getString(R.string.image_unavailable)) and hasAnyAncestor(hasTestTag("product_card_first")), useUnmergedTree = true).performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("product_grid").performScrollToNode(hasTestTag("product_card_second"))
-        compose.onNodeWithText("Training Shorts", useUnmergedTree = true).assertIsDisplayed()
+        compose.onNode(
+            hasText("Training Shorts") and hasAnyAncestor(hasTestTag("product_card_second")),
+            useUnmergedTree = true
+        ).assertIsDisplayed()
         compose.onNode(hasTestTag("product_image_logo") and hasAnyAncestor(hasTestTag("product_card_second")), useUnmergedTree = true).assertIsDisplayed()
         compose.onNodeWithTag("product_grid").performScrollToNode(hasTestTag("product_card_first"))
         compose.onNodeWithTag("product_card_first").assertHasClickAction().assertIsNotSelected()
@@ -101,8 +104,8 @@ abstract class ProductListUiChecks {
             colour = "Haze Pink/Soft Brown/Wash", rawPrice = 65L, fit = "Oversized Fit"
         )
         show(ProductListUiState.Content(listOf(first, longProduct)))
-        val firstPrice = compose.onNodeWithText("£10.00", useUnmergedTree = true)
-        val secondPrice = compose.onNodeWithText("£0.65", useUnmergedTree = true)
+        val firstPrice = compose.onNodeWithText(formatGbpPrice(1000L), useUnmergedTree = true)
+        val secondPrice = compose.onNodeWithText(formatGbpPrice(65L), useUnmergedTree = true)
         firstPrice.performScrollTo().assertIsDisplayed()
         secondPrice.assertIsDisplayed()
         compose.onNodeWithText("Oversized Fit", useUnmergedTree = true).assertIsDisplayed()
@@ -123,7 +126,7 @@ abstract class ProductListUiChecks {
             fontScale = 1.8f
         )
         compose
-            .onNodeWithText("£0.45", useUnmergedTree = true)
+            .onNodeWithText(formatGbpPrice(45L), useUnmergedTree = true)
             .performScrollTo()
             .assertIsDisplayed()
         compose
@@ -173,7 +176,7 @@ abstract class ProductListUiChecks {
         compose.onNodeWithTag("catalogue_progress").assertDoesNotExist()
     }
 
-    @Test fun selectingCardMarksTheCorrectProductAndKeepsOtherCardsUsable() {
+    @Test fun selectingCardOpensTheCorrectProductAndBackReturnsToTheSelectedCard() {
         val model = viewModel(object : ProductRepository {
             override suspend fun fetchProducts() = listOf(first, second)
         })
@@ -184,12 +187,36 @@ abstract class ProductListUiChecks {
 
         compose.onNodeWithTag("product_card_second").performClick()
 
+        compose.onNodeWithTag("product_details_title").assertIsDisplayed()
+        compose.onNodeWithTag("product_details_back").performClick()
+        compose.onNodeWithTag("product_grid").performScrollToNode(hasTestTag("product_card_second"))
         compose.onNodeWithTag("product_card_second").assertIsSelected()
         compose.onNodeWithTag("product_grid").performScrollToNode(hasTestTag("product_card_first"))
         compose.onNodeWithTag("product_card_first").assertIsNotSelected().assertHasClickAction()
         compose.runOnIdle {
             assertEquals("second", (model.uiState.value as ProductListUiState.Content).selectedProductId)
         }
+    }
+
+    @Test
+    // GS-MOB-034/009: selecting a size through the detail UI changes the displayed GBP variant price.
+    fun selectingAvailableSizeUpdatesVisibleVariantPrice() {
+        val pricedProduct = first.copy(
+            rawPrice = 1000L,
+            variants = listOf(ProductVariant("small-id", "S", 4500L, true))
+        )
+        val model = viewModel(object : ProductRepository {
+            override suspend fun fetchProducts() = listOf(pricedProduct)
+        })
+        showRoute(model)
+
+        compose.onNodeWithTag("product_card_first").performClick()
+        compose.onNodeWithTag("product_details_price").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(formatGbpPrice(1000L), useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithTag("product_size_selector").performScrollTo()
+        compose.onNodeWithTag("product_size_option_S").performClick()
+        compose.onNodeWithTag("product_details_price").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(formatGbpPrice(4500L), useUnmergedTree = true).assertIsDisplayed()
     }
 
     @Test fun gridScrollsToProductsBeyondTheInitialViewport() {

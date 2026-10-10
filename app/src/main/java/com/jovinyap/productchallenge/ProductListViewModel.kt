@@ -33,7 +33,36 @@ class ProductListViewModel(private val repository: ProductRepository) : ViewMode
     fun selectProduct(productId: String) {
         val content = mutableUiState.value as? ProductListUiState.Content ?: return
         if (content.products.any { it.id == productId }) {
-            mutableUiState.value = content.copy(selectedProductId = productId)
+            mutableUiState.value = content.copy(
+                selectedProductId = productId,
+                selectedVariantId = null
+            )
+        }
+    }
+
+    /** Opens details only for a current product, so an unknown ID cannot show another product. */
+    fun openDetails(productId: String) {
+        val content = mutableUiState.value as? ProductListUiState.Content ?: return
+        if (content.products.any { it.id == productId }) {
+            mutableUiState.value = content.copy(
+                selectedProductId = productId,
+                isDetailsVisible = true,
+                selectedVariantId = null
+            )
+        }
+    }
+
+    fun closeDetails() {
+        val content = mutableUiState.value as? ProductListUiState.Content ?: return
+        mutableUiState.value = content.copy(isDetailsVisible = false, selectedVariantId = null)
+    }
+
+    /** Selects a variant only when it belongs to the currently selected product. */
+    fun selectVariant(productId: String, variantId: String) {
+        val content = mutableUiState.value as? ProductListUiState.Content ?: return
+        val product = content.products.firstOrNull { it.id == productId } ?: return
+        if (product.variants.any { it.id == variantId }) {
+            mutableUiState.value = content.copy(selectedVariantId = variantId)
         }
     }
 

@@ -12,4 +12,6 @@
     <dimen name="product_label_spacing">4dp</dimen>
     <dimen name="product_label_padding_horizontal">6dp</dimen>
     <dimen name="product_label_padding_vertical">2dp</dimen>
+    <dimen name="product_variant_min_width">48dp</dimen>
+    <dimen name="product_variant_touch_target">48dp</dimen>
 </resources>

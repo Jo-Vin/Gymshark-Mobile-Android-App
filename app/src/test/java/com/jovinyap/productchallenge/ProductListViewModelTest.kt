@@ -15,6 +15,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 
@@ -229,6 +230,52 @@ class ProductListViewModelTest {
 
         assertEquals(before, viewModel.uiState.value)
         assertEquals(1, repository.callCount)
+    }
+
+    @Test
+    // GS-MOB-012/013: detail navigation uses the selected product's stable identifier.
+    fun openingDetailsUsesTheStableIdAndRejectsUnknownProducts() = runTest {
+        val repository = ControlledRepository()
+        val response = repository.nextResponse()
+        val other = product.copy(id = "second", title = product.title)
+        val viewModel = create(repository)
+        response.complete(listOf(product, other))
+        advanceUntilIdle()
+
+        viewModel.openDetails("second")
+
+        assertEquals("second", (viewModel.uiState.value as ProductListUiState.Content).selectedProductId)
+        assertTrue((viewModel.uiState.value as ProductListUiState.Content).isDetailsVisible)
+
+        viewModel.closeDetails()
+        viewModel.openDetails("missing")
+
+        assertFalse((viewModel.uiState.value as ProductListUiState.Content).isDetailsVisible)
+        assertEquals("second", (viewModel.uiState.value as ProductListUiState.Content).selectedProductId)
+    }
+
+    @Test
+    // GS-MOB-009: selecting a known variant changes detail pricing without inventing unknown variants.
+    fun selectingVariantChangesDetailPriceOnlyForKnownVariant() = runTest {
+        val repository = ControlledRepository()
+        val response = repository.nextResponse()
+        val withVariants = product.copy(
+            variants = listOf(ProductVariant("small", "S", 4500L, true))
+        )
+        val viewModel = create(repository)
+        response.complete(listOf(withVariants))
+        advanceUntilIdle()
+
+        viewModel.openDetails(withVariants.id)
+        viewModel.selectVariant(withVariants.id, "small")
+
+        val state = viewModel.uiState.value as ProductListUiState.Content
+        assertEquals("small", state.selectedVariantId)
+        viewModel.selectVariant(withVariants.id, "unknown")
+        assertEquals("small", (viewModel.uiState.value as ProductListUiState.Content).selectedVariantId)
+
+        viewModel.selectProduct(withVariants.id)
+        assertNull((viewModel.uiState.value as ProductListUiState.Content).selectedVariantId)
     }
 
     @Test

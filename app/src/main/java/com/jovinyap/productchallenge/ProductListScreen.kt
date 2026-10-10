@@ -3,9 +3,11 @@ package com.jovinyap.productchallenge
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.selection.selectable
@@ -34,12 +36,28 @@ fun ProductListRoute(
     imageLoader: ImageLoader = SingletonImageLoader.get(LocalContext.current)
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    ProductListScreen(
-        uiState = state,
-        onRetry = viewModel::retry,
-        onProductSelected = viewModel::selectProduct,
-        imageLoader = imageLoader
-    )
+    val gridState = androidx.compose.foundation.lazy.grid.rememberLazyGridState()
+    val largeFontScrollState = rememberScrollState()
+    val content = state as? ProductListUiState.Content
+    if (content?.isDetailsVisible == true) {
+        BackHandler { viewModel.closeDetails() }
+        ProductDetailsScreen(
+            product = content.products.firstOrNull { it.id == content.selectedProductId },
+            selectedVariantId = content.selectedVariantId,
+            onBack = viewModel::closeDetails,
+            onVariantSelected = { viewModel.selectVariant(content.selectedProductId.orEmpty(), it) },
+            imageLoader = imageLoader
+        )
+    } else {
+        ProductListScreen(
+            uiState = state,
+            onRetry = viewModel::retry,
+            onProductSelected = viewModel::openDetails,
+            imageLoader = imageLoader,
+            gridState = gridState,
+            largeFontScrollState = largeFontScrollState
+        )
+    }
 }
 
 /** Displays the catalogue without knowing how products are downloaded or decoded. */
@@ -49,7 +67,9 @@ fun ProductListScreen(
     onRetry: () -> Unit,
     onProductSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
-    imageLoader: ImageLoader = SingletonImageLoader.get(LocalContext.current)
+    imageLoader: ImageLoader = SingletonImageLoader.get(LocalContext.current),
+    gridState: LazyGridState = androidx.compose.foundation.lazy.grid.rememberLazyGridState(),
+    largeFontScrollState: androidx.compose.foundation.ScrollState = rememberScrollState()
 ) {
     val padding = dimensionResource(R.dimen.catalogue_padding)
     val spacing = dimensionResource(R.dimen.catalogue_spacing)
@@ -101,7 +121,7 @@ fun ProductListScreen(
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .verticalScroll(rememberScrollState())
+                                    .verticalScroll(largeFontScrollState)
                                     .testTag("product_grid"),
                             ) {
                                 Column(
@@ -124,6 +144,7 @@ fun ProductListScreen(
                         } else {
                             LazyVerticalGrid(
                                 columns = GridCells.Adaptive(dimensionResource(R.dimen.product_card_min_width)),
+                                state = gridState,
                                 modifier = Modifier.fillMaxSize().testTag("product_grid"),
                                 contentPadding = PaddingValues(padding),
                                 horizontalArrangement = Arrangement.spacedBy(spacing),

@@ -14,7 +14,7 @@ Stages 1–5 connect catalogue retrieval, screen state and the Compose product g
 - Shared Compose behaviour checks run with Robolectric and on a connected Android device.
 - GitHub Actions verification is being configured.
 
-Product details and HTML description rendering are the next increment.
+Product details and HTML description rendering are implemented as the next increment.
 
 ## Requirements
 
@@ -25,6 +25,13 @@ The completed application will:
 - Handle missing or failed images gracefully.
 - Show further product information when a product is selected.
 - Present HTML descriptions appropriately.
+
+Prices are GBP minor units: the list displays the product-level price, while details
+show the product price until a variant is selected and then show that variant's price.
+Variants with no price are reported as unavailable. Details use the native Android
+HTML parser for readable paragraphs, entities, Unicode and basic text spans after
+removing script/style and known translator-wrapper markup. This is intentionally not
+claimed to be comprehensive HTML sanitisation, and no WebView is used.
 
 The implementation will use MVVM and focused unit tests, developed through
 test-driven development.
@@ -103,7 +110,20 @@ with a fake repository and a test main dispatcher, without network calls or dela
 `ProductListScreen` renders states and sends retry/selection callbacks. Cards use
 stable product IDs and the existing `ProductImage` component; image loading or
 failure does not prevent selection. Selecting a card highlights it and records
-its ID; navigation and details remain stage 6.
+its ID. Selecting a card opens its detail view by stable product ID; the detail view
+uses the selected variant price when a variant is chosen and otherwise shows the
+product-level GBP minor-unit price. A missing variant price is shown as unavailable.
+The description is rendered with Android's native HTML parser after removing script,
+style and known translator-wrapper markup. This supports readable paragraphs,
+entities, Unicode and basic bold/italic/underline spans; it is deliberately not
+claimed to be comprehensive HTML sanitisation and does not use a WebView.
+The detail presentation uses a fixed safe app bar, a full-width portrait image,
+wrapped outlined size controls and an expanded-by-default Description section. Screenshot-only
+features such as reviews, wishlist, sharing, checkout, delivery claims and
+recommendations remain intentionally unsupported.
+The detail selector assumes the assessment baseline sizes XS, S, M, L, XL and XXL;
+payload sizes outside that range are appended in payload order. A size is selectable
+only when its variant explicitly reports `inStock: true`.
 
 `ProductListUiChecks` is shared between the Robolectric and instrumented runners.
 It controls repository responses and image results locally, checking content,
@@ -119,6 +139,4 @@ No persistent catalogue cache is implemented.
 
 ## Assumptions and decisions
 
-- Currency, price units and product-versus-variant pricing are awaiting clarification.
-- Prices are omitted from the grid until currency and units are confirmed.
 - Search, filters, checkout and authentication are outside the required scope.
