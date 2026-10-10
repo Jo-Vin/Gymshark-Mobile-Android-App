@@ -44,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.ImageLoader
+import androidx.compose.ui.text.style.TextDecoration
 
 private const val DETAIL_IMAGE_ASPECT_RATIO = 0.82f
 
@@ -228,7 +229,7 @@ private fun ColourProductSelector(
             Surface(
                 modifier = Modifier
                     .width(64.dp)
-                    .height(84.dp)
+                    .height(80.dp)
                     .selectable(
                         selected = selected,
                         role = Role.RadioButton,
@@ -336,6 +337,11 @@ private fun VariantSelector(product: Product, selectedVariantId: String?, onVari
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 12.dp),
                             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
                             textAlign = TextAlign.Center,
+                            textDecoration = if (enabled) {
+                                TextDecoration.None
+                            } else {
+                                TextDecoration.LineThrough
+                            },
                             color = when {
                                 selected -> MaterialTheme.colorScheme.surface
                                 enabled -> MaterialTheme.colorScheme.onSurface
