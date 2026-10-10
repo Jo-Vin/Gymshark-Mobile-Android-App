@@ -14,6 +14,7 @@ data class ProductDto(
     val title: String? = null,
     val description: String? = null,
     val type: String? = null,
+    val gender: List<String>? = null,
     val fit: String? = null,
     val colour: String? = null,
     val price: Long? = null,

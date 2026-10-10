@@ -15,8 +15,10 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -51,13 +53,22 @@ fun ProductDetailsScreen(
     selectedVariantId: String?,
     onBack: () -> Unit,
     onVariantSelected: (String) -> Unit,
-    imageLoader: ImageLoader
+    imageLoader: ImageLoader,
+    catalogueProducts: List<Product> = emptyList(),
+    onColourSelected: (String) -> Unit = {}
 ) {
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize()) {
             ProductDetailsHeader(product?.title, onBack)
             if (product == null) ProductUnavailableContent()
-            else ProductDetailsContent(product, selectedVariantId, onVariantSelected, imageLoader)
+            else ProductDetailsContent(
+                product,
+                selectedVariantId,
+                onVariantSelected,
+                imageLoader,
+                catalogueProducts,
+                onColourSelected
+            )
         }
     }
 }
@@ -114,7 +125,9 @@ private fun ProductDetailsContent(
     product: Product,
     selectedVariantId: String?,
     onVariantSelected: (String) -> Unit,
-    imageLoader: ImageLoader
+    imageLoader: ImageLoader,
+    catalogueProducts: List<Product>,
+    onColourSelected: (String) -> Unit
 ) {
     val selectedVariant = product.variants.firstOrNull { it.id == selectedVariantId }
     val displayedPrice = selectedVariant?.rawPrice ?: if (selectedVariant == null) product.rawPrice else null
@@ -165,6 +178,12 @@ private fun ProductDetailsContent(
                 modifier = Modifier.testTag("product_details_title"),
                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
             )
+            ColourProductSelector(
+                products = relatedColourProducts(catalogueProducts, product),
+                selectedProductId = product.id,
+                imageLoader = imageLoader,
+                onColourSelected = onColourSelected
+            )
             product.fit?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             product.colour?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             Text(
@@ -177,6 +196,58 @@ private fun ProductDetailsContent(
                 VariantSelector(product, selectedVariantId, onVariantSelected)
             }
             ProductDescriptionSection(product.descriptionHtml)
+        }
+    }
+}
+
+@Composable
+private fun ColourProductSelector(
+    products: List<Product>,
+    selectedProductId: String,
+    imageLoader: ImageLoader,
+    onColourSelected: (String) -> Unit
+) {
+    if (products.size < 2) return
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .testTag("product_colour_selector"),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        products.forEach { colourProduct ->
+            val selected = colourProduct.id == selectedProductId
+            val colourLabel = stringResource(
+                R.string.product_colour_option_description,
+                colourProduct.colour.orEmpty()
+            )
+            Surface(
+                modifier = Modifier
+                    .width(64.dp)
+                    .selectable(
+                        selected = selected,
+                        role = Role.RadioButton,
+                        onClick = { if (!selected) onColourSelected(colourProduct.id) }
+                    )
+                    .semantics {
+                        contentDescription = colourLabel
+                    }
+                    .testTag("product_colour_option_${colourProduct.id}"),
+                border = BorderStroke(
+                    2.dp,
+                    if (selected) MaterialTheme.colorScheme.onSurface
+                    else MaterialTheme.colorScheme.outlineVariant
+                )
+            ) {
+                ProductImage(
+                    imageUrl = colourProduct.imageUrl,
+                    productTitle = colourProduct.title,
+                    imageAlt = colourProduct.imageAlt,
+                    imageLoader = imageLoader,
+                    aspectRatio = 1f
+                )
+            }
         }
     }
 }

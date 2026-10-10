@@ -15,7 +15,9 @@ data class Product(
     val imageAlt: String?,
     val labels: List<String>,
     val fit: String? = null,
-    val variants: List<ProductVariant> = emptyList()
+    val variants: List<ProductVariant> = emptyList(),
+    val productType: String? = null,
+    val gender: String? = null
 )
 
 /** A selectable product variant whose price remains in GBP minor units. */

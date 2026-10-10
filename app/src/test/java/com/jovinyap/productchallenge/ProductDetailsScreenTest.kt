@@ -10,6 +10,8 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.hasAnyAncestor
@@ -291,5 +293,83 @@ class ProductDetailsScreenTest {
         }
 
         compose.onAllNodesWithTag("product_model_information").assertCountEquals(0)
+    }
+
+    @Test
+    // Product-detail enhancement: selecting a related colour updates the displayed product data.
+    fun selectingColourThumbnailUpdatesProductInformationAndSelection() {
+        val navy = Product(
+            id = "navy",
+            title = "Speed Leggings",
+            rawPrice = 1000L,
+            colour = "Navy",
+            descriptionHtml = "<p>Navy description</p>",
+            imageUrl = null,
+            imageAlt = null,
+            labels = listOf("Navy label"),
+            productType = "Womens Leggings",
+            gender = "Womens"
+        )
+        val black = navy.copy(
+            id = "black",
+            rawPrice = 2000L,
+            colour = "Black",
+            descriptionHtml = "<p>Black description</p>",
+            labels = listOf("Black label")
+        )
+        val selected = mutableStateOf(navy)
+
+        compose.setContent {
+            ProductCatalogueTheme {
+                ProductDetailsScreen(
+                    product = selected.value,
+                    selectedVariantId = null,
+                    onBack = {},
+                    onVariantSelected = {},
+                    imageLoader = imageLoader,
+                    catalogueProducts = listOf(navy, black),
+                    onColourSelected = { id -> selected.value = listOf(navy, black).first { it.id == id } }
+                )
+            }
+        }
+
+        compose.onNodeWithTag("product_colour_option_navy").assertIsSelected()
+        compose.onNodeWithTag("product_colour_option_black").assertIsNotSelected().performClick()
+        compose.onNodeWithText("Black").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(formatGbpPrice(2000L)).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Black label").assertIsDisplayed()
+        compose.onNodeWithTag("product_colour_option_black").assertIsSelected()
+    }
+
+    @Test
+    // Product-detail enhancement: a single colour product does not show an empty selector.
+    fun singleColourProductOmitsColourSelector() {
+        val product = Product(
+            id = "single-colour",
+            title = "Single Colour Product",
+            rawPrice = 1000L,
+            colour = "Navy",
+            descriptionHtml = null,
+            imageUrl = null,
+            imageAlt = null,
+            labels = emptyList(),
+            productType = "Womens Leggings",
+            gender = "Womens"
+        )
+
+        compose.setContent {
+            ProductCatalogueTheme {
+                ProductDetailsScreen(
+                    product,
+                    null,
+                    {},
+                    {},
+                    imageLoader,
+                    catalogueProducts = listOf(product)
+                )
+            }
+        }
+
+        compose.onAllNodesWithTag("product_colour_selector").assertCountEquals(0)
     }
 }

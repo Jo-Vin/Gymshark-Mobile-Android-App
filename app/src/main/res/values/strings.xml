@@ -21,5 +21,6 @@
     <string name="product_description_expanded">Expanded</string>
     <string name="product_description_collapsed">Collapsed</string>
     <string name="product_model_information">Model: %1$s · Size %2$s</string>
+    <string name="product_colour_option_description">View %1$s colour</string>
 </resources>
 
