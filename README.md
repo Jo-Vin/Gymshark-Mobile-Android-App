@@ -118,7 +118,7 @@ style and known translator-wrapper markup. This supports readable paragraphs,
 entities, Unicode and basic bold/italic/underline spans; it is deliberately not
 claimed to be comprehensive HTML sanitisation and does not use a WebView.
 The detail presentation uses a fixed safe app bar, a full-width portrait image,
-wrapped outlined size controls and a collapsed Description section. Screenshot-only
+wrapped outlined size controls and an expanded-by-default Description section. Screenshot-only
 features such as reviews, wishlist, sharing, checkout, delivery claims and
 recommendations remain intentionally unsupported.
 The detail selector assumes the assessment baseline sizes XS, S, M, L, XL and XXL;

@@ -120,7 +120,11 @@ private fun ProductDetailsContent(
     val displayedPrice = selectedVariant?.rawPrice ?: if (selectedVariant == null) product.rawPrice else null
     val modelInformation = remember(product.descriptionHtml) { extractModelInformation(product.descriptionHtml) }
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).navigationBarsPadding(),
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .navigationBarsPadding()
+            .testTag("product_details_content"),
         verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.catalogue_spacing))
     ) {
         ProductImage(
@@ -134,7 +138,8 @@ private fun ProductDetailsContent(
                     Surface(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
-                            .padding(bottom = 12.dp),
+                            .padding(bottom = 12.dp)
+                            .testTag("product_model_information"),
                         color = MaterialTheme.colorScheme.surface
                     ) {
                         Text(
@@ -155,7 +160,11 @@ private fun ProductDetailsContent(
             verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.product_label_spacing))
         ) {
             product.labels.forEach { label -> ProductBadge(label) }
-            Text(product.title, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold))
+            Text(
+                product.title,
+                modifier = Modifier.testTag("product_details_title"),
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
+            )
             product.fit?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             product.colour?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             Text(
@@ -194,7 +203,9 @@ private fun VariantSelector(product: Product, selectedVariantId: String?, onVari
             Text(stringResource(R.string.product_size_label), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Surface(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("product_size_selector"),
             color = MaterialTheme.colorScheme.surface,
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
         ) {
@@ -288,7 +299,9 @@ private fun ProductDescriptionSection(html: String?) {
             Text(
                 text = annotatedProductDescription(html)
                     ?: androidx.compose.ui.text.AnnotatedString(stringResource(R.string.product_description_unavailable)),
-                modifier = Modifier.padding(bottom = 16.dp)
+                modifier = Modifier
+                    .padding(bottom = 16.dp)
+                    .testTag("product_description_body")
             )
         }
     }
