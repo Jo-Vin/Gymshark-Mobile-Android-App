@@ -40,11 +40,13 @@ import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.ImageLoader
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.sp
 
 private const val DETAIL_IMAGE_ASPECT_RATIO = 0.82f
 
@@ -385,7 +387,13 @@ private fun ProductDescriptionSection(html: String?) {
         if (expanded) {
             Text(
                 text = annotatedProductDescription(html)
-                    ?: androidx.compose.ui.text.AnnotatedString(stringResource(R.string.product_description_unavailable)),
+                    ?: AnnotatedString(
+                        stringResource(R.string.product_description_unavailable)
+                    ),
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    lineHeight = 22.sp
+                ),
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier
                     .padding(bottom = 16.dp)
                     .testTag("product_description_body")
