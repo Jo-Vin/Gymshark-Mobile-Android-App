@@ -176,11 +176,18 @@ private fun ProductDetailsContent(
             modifier = Modifier.padding(horizontal = dimensionResource(R.dimen.catalogue_padding)),
             verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.product_label_spacing))
         ) {
-            product.labels.forEach { label -> ProductBadge(label) }
+            // 1. Wrap the labels in a Row to arrange them horizontally
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.product_label_spacing)),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                product.labels.forEach { label ->
+                    ProductBadge(label)
+                }
+            }
             Text(
                 product.title,
                 modifier = Modifier
-                    .padding(top = 8.dp)
                     .testTag("product_details_title"),
                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
             )
