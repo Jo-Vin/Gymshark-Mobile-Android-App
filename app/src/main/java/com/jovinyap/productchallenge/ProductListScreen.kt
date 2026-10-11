@@ -79,6 +79,12 @@ fun ProductListScreen(
     val padding = dimensionResource(R.dimen.catalogue_padding)
     val spacing = dimensionResource(R.dimen.catalogue_spacing)
     val fontScale = LocalDensity.current.fontScale
+    val showFitRow = (uiState as? ProductListUiState.Content)
+        ?.products
+        ?.any { !it.fit.isNullOrBlank() } == true
+    val showColourRow = (uiState as? ProductListUiState.Content)
+        ?.products
+        ?.any { !it.colour.isNullOrBlank() } == true
     Surface(modifier = modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().safeDrawingPadding()) {
             Box(
@@ -146,7 +152,9 @@ fun ProductListScreen(
                                                 selected = product.id == uiState.selectedProductId,
                                                 onProductSelected = onProductSelected,
                                                 imageLoader = imageLoader,
-                                                largeText = true
+                                                largeText = true,
+                                                showFitRow = showFitRow,
+                                                showColourRow = showColourRow
                                             )
                                         }
                                     }
@@ -169,7 +177,9 @@ fun ProductListScreen(
                                         selected = product.id == uiState.selectedProductId,
                                         onProductSelected = onProductSelected,
                                         imageLoader = imageLoader,
-                                        largeText = false
+                                        largeText = false,
+                                        showFitRow = showFitRow,
+                                        showColourRow = showColourRow
                                     )
                                 }
                             }
@@ -188,7 +198,9 @@ private fun ProductCard(
     selected: Boolean,
     onProductSelected: (String) -> Unit,
     imageLoader: ImageLoader,
-    largeText: Boolean
+    largeText: Boolean,
+    showFitRow: Boolean,
+    showColourRow: Boolean
 ) {
     Column(
         modifier = modifier.testTag("product_card_${product.id}")
@@ -241,21 +253,54 @@ private fun ProductCard(
                 overflow = if (largeText) TextOverflow.Clip else TextOverflow.Ellipsis
             )
 
-            // Keep fit and colour in stable rows so prices align across a grid row.
-            Text(
-                text = product.fit ?: "\u00A0",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = if (largeText) Int.MAX_VALUE else 1,
-                overflow = if (largeText) TextOverflow.Clip else TextOverflow.Ellipsis
-            )
-            Text(
-                text = product.colour ?: "\u00A0",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = if (largeText) Int.MAX_VALUE else 1,
-                overflow = if (largeText) TextOverflow.Clip else TextOverflow.Ellipsis
-            )
+            // Normal cards use one compact metadata row; this removes the unused
+            // fit-line gap while keeping fit and colour in the required order.
+            if (largeText) {
+                if (showFitRow) {
+                    Text(
+                        text = product.fit ?: "\u00A0",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = Int.MAX_VALUE,
+                        overflow = TextOverflow.Clip
+                    )
+                }
+                if (showColourRow) {
+                    Text(
+                        text = product.colour ?: "\u00A0",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = Int.MAX_VALUE,
+                        overflow = TextOverflow.Clip
+                    )
+                }
+            } else if (showFitRow || showColourRow) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    product.fit?.takeIf { it.isNotBlank() }?.let { fit ->
+                        Text(
+                            text = fit,
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    product.colour?.takeIf { it.isNotBlank() }?.let { colour ->
+                        Text(
+                            text = colour,
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
 
             Text(
                 text = formatGbpPrice(product.rawPrice),
