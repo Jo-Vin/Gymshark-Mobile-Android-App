@@ -43,7 +43,9 @@ class ProductMapper {
                 val size = variant.size.nonBlank() ?: return@mapNotNull null
                 val variantId = variant.id?.toString() ?: variant.sku.nonBlank() ?: size
                 ProductVariant(variantId, size, variant.price, variant.inStock)
-            }
+            },
+            productType = dto.type.nonBlank(),
+        gender = dto.gender.orEmpty().joinToString("|").nonBlank()
         )
     }
 

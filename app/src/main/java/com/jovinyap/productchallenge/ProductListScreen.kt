@@ -46,7 +46,9 @@ fun ProductListRoute(
             selectedVariantId = content.selectedVariantId,
             onBack = viewModel::closeDetails,
             onVariantSelected = { viewModel.selectVariant(content.selectedProductId.orEmpty(), it) },
-            imageLoader = imageLoader
+            imageLoader = imageLoader,
+            catalogueProducts = content.products,
+            onColourSelected = viewModel::selectColourProduct
         )
     } else {
         ProductListScreen(

@@ -125,6 +125,14 @@ The detail selector assumes the assessment baseline sizes XS, S, M, L, XL and XX
 payload sizes outside that range are appended in payload order. A size is selectable
 only when its variant explicitly reports `inStock: true`.
 
+The colour thumbnail enhancement uses a conservative fallback because the supplied
+payload has no explicit product-family ID. Products are grouped only when their
+normalised title, product type, gender and fit all match; stable IDs and colours
+remain distinct. This avoids treating identical titles with different categories
+or fits as related, but cannot prove a family relationship when the source data
+omits one. Colour switching reuses the loaded catalogue, resets the selected size,
+and shows the newly selected product's own image, content and price.
+
 `ProductListUiChecks` is shared between the Robolectric and instrumented runners.
 It controls repository responses and image results locally, checking content,
 loading, empty/error/retry, scrolling, selection and image accessibility. Existing

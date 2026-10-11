@@ -255,6 +255,39 @@ class ProductListViewModelTest {
     }
 
     @Test
+    // Product-detail enhancement: colour switching reuses loaded products and clears the old size.
+    fun selectingRelatedColourChangesProductAndClearsVariant() = runTest {
+        val repository = ControlledRepository()
+        val response = repository.nextResponse()
+        val navy = product.copy(
+            id = "navy",
+            colour = "Navy",
+            variants = listOf(ProductVariant("navy-s", "S", 4500L, true)),
+            productType = "Womens Leggings"
+        )
+        val black = product.copy(
+            id = "black",
+            colour = "Black",
+            rawPrice = 5500L,
+            variants = listOf(ProductVariant("black-m", "M", 6500L, true)),
+            productType = "Womens Leggings"
+        )
+        val viewModel = create(repository)
+        response.complete(listOf(navy, black))
+        advanceUntilIdle()
+
+        viewModel.openDetails(navy.id)
+        viewModel.selectVariant(navy.id, "navy-s")
+        viewModel.selectColourProduct(black.id)
+
+        val state = viewModel.uiState.value as ProductListUiState.Content
+        assertEquals(black.id, state.selectedProductId)
+        assertNull(state.selectedVariantId)
+        assertTrue(state.isDetailsVisible)
+        assertEquals(1, repository.callCount)
+    }
+
+    @Test
     // GS-MOB-009: selecting a known variant changes detail pricing without inventing unknown variants.
     fun selectingVariantChangesDetailPriceOnlyForKnownVariant() = runTest {
         val repository = ControlledRepository()

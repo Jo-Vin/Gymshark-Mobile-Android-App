@@ -52,6 +52,17 @@ class ProductListViewModel(private val repository: ProductRepository) : ViewMode
         }
     }
 
+    /** Switches to an already loaded related product and clears the previous size selection. */
+    fun selectColourProduct(productId: String) {
+        val content = mutableUiState.value as? ProductListUiState.Content ?: return
+        if (content.isDetailsVisible && content.products.any { it.id == productId }) {
+            mutableUiState.value = content.copy(
+                selectedProductId = productId,
+                selectedVariantId = null
+            )
+        }
+    }
+
     fun closeDetails() {
         val content = mutableUiState.value as? ProductListUiState.Content ?: return
         mutableUiState.value = content.copy(isDetailsVisible = false, selectedVariantId = null)

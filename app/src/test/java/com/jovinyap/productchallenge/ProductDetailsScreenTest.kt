@@ -4,20 +4,24 @@ import android.content.Context
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
-import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assert
-import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.performScrollTo
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasAnyAncestor
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.hasTestTag
-import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
 import coil3.ImageLoader
 import org.junit.Assert.assertEquals
@@ -291,5 +295,121 @@ class ProductDetailsScreenTest {
         }
 
         compose.onAllNodesWithTag("product_model_information").assertCountEquals(0)
+    }
+
+    @Test
+    fun selectingColourThumbnailUpdatesProductInformationAndSelection() {
+        val navy = Product(
+            id = "navy",
+            title = "Speed Leggings",
+            rawPrice = 1000L,
+            colour = "Navy",
+            descriptionHtml = "<p>Navy description</p>",
+            imageUrl = null,
+            imageAlt = null,
+            labels = listOf("Navy label"),
+            productType = "Womens Leggings",
+            gender = "Womens"
+        )
+
+        val black = navy.copy(
+            id = "black",
+            rawPrice = 2000L,
+            colour = "Black",
+            descriptionHtml = "<p>Black description</p>",
+            labels = listOf("Black label")
+        )
+
+        val selected = mutableStateOf(navy)
+
+        compose.setContent {
+            ProductCatalogueTheme {
+                ProductDetailsScreen(
+                    product = selected.value,
+                    selectedVariantId = null,
+                    onBack = {},
+                    onVariantSelected = {},
+                    imageLoader = imageLoader,
+                    catalogueProducts = listOf(navy, black),
+                    onColourSelected = { id ->
+                        selected.value = listOf(navy, black)
+                            .first { it.id == id }
+                    }
+                )
+            }
+        }
+
+        compose.waitForIdle()
+
+        // ARRANGE: Bring the colour row into the vertical viewport.
+        compose.onNodeWithTag("product_colour_selector")
+            .performScrollTo()
+            .assertIsDisplayed()
+
+        compose.onNodeWithTag("product_colour_option_navy")
+            .assertIsSelected()
+
+        compose.runOnIdle {
+            assertEquals("navy", selected.value.id)
+        }
+
+        // ACT: Bring Black into the horizontal viewport, then click it.
+        compose.onNodeWithTag("product_colour_option_black")
+            .performScrollTo()
+            .assertIsDisplayed()
+            .assertIsEnabled()
+            .assertHasClickAction()
+            .assertIsNotSelected()
+            .performClick()
+
+        // ASSERT: The callback changes the selected product.
+        compose.runOnIdle {
+            assertEquals("black", selected.value.id)
+        }
+
+        // Recomposition updates the selected colour.
+        compose.onNodeWithTag("product_colour_option_black")
+            .assertIsSelected()
+
+        compose.onNodeWithTag("product_colour_option_navy")
+            .assertIsNotSelected()
+
+        // The price now belongs to Black.
+        compose.onNodeWithTag("product_details_price")
+            .performScrollTo()
+            .assertIsDisplayed()
+            .assertTextContains(formatGbpPrice(2000L))
+    }
+
+    @Test
+    // Product-detail enhancement: a single colour product does not show an empty selector.
+    fun singleColourProductOmitsColourSelector() {
+        val product = Product(
+            id = "single-colour",
+            title = "Single Colour Product",
+            rawPrice = 1000L,
+            colour = "Navy",
+            descriptionHtml = null,
+            imageUrl = null,
+            imageAlt = null,
+            labels = emptyList(),
+            productType = "Womens Leggings",
+            gender = "Womens"
+        )
+
+        compose.setContent {
+            ProductCatalogueTheme {
+                ProductDetailsScreen(
+                    product,
+                    null,
+                    {},
+                    {},
+                    imageLoader,
+                    catalogueProducts = listOf(product)
+                )
+            }
+        }
+
+        compose.onAllNodesWithTag("product_colour_selector").assertCountEquals(0)
     }
 }
