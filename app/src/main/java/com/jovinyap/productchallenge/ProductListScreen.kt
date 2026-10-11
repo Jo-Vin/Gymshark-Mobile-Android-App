@@ -241,22 +241,21 @@ private fun ProductCard(
                 overflow = if (largeText) TextOverflow.Clip else TextOverflow.Ellipsis
             )
 
-            // Show fit, then colour, without reserving empty attribute rows.
-            listOfNotNull(product.fit, product.colour)
-                .filter { it.isNotBlank() }
-                .forEach { attribute ->
-                    Text(
-                        text = attribute,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = if (largeText) Int.MAX_VALUE else 1,
-                        overflow = if (largeText) {
-                            TextOverflow.Clip
-                        } else {
-                            TextOverflow.Ellipsis
-                        }
-                    )
-                }
+            // Keep fit and colour in stable rows so prices align across a grid row.
+            Text(
+                text = product.fit ?: "\u00A0",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = if (largeText) Int.MAX_VALUE else 1,
+                overflow = if (largeText) TextOverflow.Clip else TextOverflow.Ellipsis
+            )
+            Text(
+                text = product.colour ?: "\u00A0",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = if (largeText) Int.MAX_VALUE else 1,
+                overflow = if (largeText) TextOverflow.Clip else TextOverflow.Ellipsis
+            )
 
             Text(
                 text = formatGbpPrice(product.rawPrice),
