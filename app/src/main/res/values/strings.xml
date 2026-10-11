@@ -18,6 +18,7 @@
     <string name="product_variant_unavailable">Unavailable</string>
     <string name="product_description_heading">Description</string>
     <string name="product_description_unavailable">No description available.</string>
+    <string name="product_description_link_unavailable">This link could not be opened.</string>
     <string name="product_description_expanded">Expanded</string>
     <string name="product_description_collapsed">Collapsed</string>
     <string name="product_model_information">Model: %1$s · Size %2$s</string>

@@ -5,12 +5,23 @@ import android.text.Spanned
 import android.text.SpannableStringBuilder
 import android.text.style.StyleSpan
 import android.text.style.UnderlineSpan
+import android.text.style.URLSpan
 import android.os.Build
+import java.net.URI
 import java.util.Locale
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.LinkInteractionListener
+import androidx.compose.ui.text.style.TextDecoration
+
+/** Handles a validated external product-description URL. */
+fun interface ExternalUrlHandler {
+    fun open(url: String): Boolean
+}
 
 private val removableProductMarkup = Regex(
     "<(?<tag>script|style)\\b[^>]*>.*?</\\k<tag>\\s*>",
@@ -55,8 +66,11 @@ internal fun extractModelInformation(html: String?): ModelInformation? {
 }
 
 /** Keeps paragraph breaks and basic bold/italic/underline spans supported by Android Html. */
-internal fun annotatedProductDescription(html: String?): AnnotatedString? {
-    return normalisedProductDescription(html)?.toAnnotatedString()
+internal fun annotatedProductDescription(
+    html: String?,
+    onUrlClick: ((String) -> Boolean)? = null
+): AnnotatedString? {
+    return normalisedProductDescription(html)?.toAnnotatedString(onUrlClick)
 }
 
 private fun cleanProductMarkup(value: String): String = value
@@ -94,7 +108,7 @@ private fun parseProductHtml(value: String): Spanned = if (Build.VERSION.SDK_INT
     Html.fromHtml(value)
 }
 
-private fun Spanned.toAnnotatedString(): AnnotatedString {
+private fun Spanned.toAnnotatedString(onUrlClick: ((String) -> Boolean)?): AnnotatedString {
     val builder = AnnotatedString.Builder(toString())
     getSpans(0, length, Any::class.java).forEach { span ->
         val start = getSpanStart(span).coerceAtLeast(0)
@@ -110,7 +124,43 @@ private fun Spanned.toAnnotatedString(): AnnotatedString {
                 end
             )
             is UnderlineSpan -> builder.addStyle(SpanStyle(textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline), start, end)
+            is URLSpan -> {
+                val url = supportedProductDescriptionUrl(span.url) ?: return@forEach
+                builder.addLink(
+                    LinkAnnotation.Url(
+                        url = url,
+                        styles = TextLinkStyles(
+                            style = SpanStyle(textDecoration = TextDecoration.Underline)
+                        ),
+                        linkInteractionListener = onUrlClick?.let { handler ->
+                            LinkInteractionListener { link ->
+                                val destination = (link as? LinkAnnotation.Url)?.url ?: return@LinkInteractionListener
+                                handler(destination)
+                            }
+                        }
+                    ),
+                    start,
+                    end
+                )
+            }
         }
     }
     return builder.toAnnotatedString()
+}
+
+/** Accepts only absolute HTTPS links with a syntactically valid host. */
+private fun supportedProductDescriptionUrl(value: String?): String? {
+    val url = value?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+    val uri = try {
+        URI(url)
+    } catch (_: java.net.URISyntaxException) {
+        return null
+    }
+    return url.takeIf {
+        uri.isAbsolute &&
+            uri.scheme.equals("https", ignoreCase = true) &&
+            !uri.host.isNullOrBlank() &&
+            uri.rawUserInfo == null &&
+            (uri.port == -1 || uri.port in 1..65535)
+    }
 }
