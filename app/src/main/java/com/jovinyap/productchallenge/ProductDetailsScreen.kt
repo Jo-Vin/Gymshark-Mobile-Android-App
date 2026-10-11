@@ -63,12 +63,12 @@ fun ProductDetailsScreen(
             ProductDetailsHeader(product?.title, onBack)
             if (product == null) ProductUnavailableContent()
             else ProductDetailsContent(
-                product,
-                selectedVariantId,
-                onVariantSelected,
-                imageLoader,
-                catalogueProducts,
-                onColourSelected
+                product = product,
+                selectedVariantId = selectedVariantId,
+                onVariantSelected = onVariantSelected,
+                imageLoader = imageLoader,
+                catalogueProducts = catalogueProducts,
+                onColourSelected = onColourSelected
             )
         }
     }
@@ -183,7 +183,10 @@ private fun ProductDetailsContent(
                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
             )
             ColourProductSelector(
-                products = relatedColourProducts(catalogueProducts, product),
+                products = relatedColourProducts(
+                    products = catalogueProducts,
+                    selectedProduct = product
+                ),
                 selectedProductId = product.id,
                 imageLoader = imageLoader,
                 onColourSelected = onColourSelected
@@ -211,7 +214,9 @@ private fun ColourProductSelector(
     imageLoader: ImageLoader,
     onColourSelected: (String) -> Unit
 ) {
-    if (products.size < 2) return
+    if (products.size < 2) {
+        return
+    }
 
     Row(
         modifier = Modifier
@@ -221,28 +226,29 @@ private fun ColourProductSelector(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         products.forEach { colourProduct ->
-            val selected = colourProduct.id == selectedProductId
-            val colourLabel = stringResource(
-                R.string.product_colour_option_description,
-                colourProduct.colour.orEmpty()
-            )
+            val isSelected = colourProduct.id == selectedProductId
+
             Surface(
                 modifier = Modifier
                     .width(64.dp)
                     .height(80.dp)
                     .selectable(
-                        selected = selected,
+                        selected = isSelected,
                         role = Role.RadioButton,
-                        onClick = { if (!selected) onColourSelected(colourProduct.id) }
+                        onClick = {
+                            onColourSelected(colourProduct.id)
+                        }
                     )
-                    .semantics {
-                        contentDescription = colourLabel
-                    }
-                    .testTag("product_colour_option_${colourProduct.id}"),
+                    .testTag(
+                        "product_colour_option_${colourProduct.id}"
+                    ),
                 border = BorderStroke(
-                    2.dp,
-                    if (selected) MaterialTheme.colorScheme.onSurface
-                    else MaterialTheme.colorScheme.outlineVariant
+                    width = 2.dp,
+                    color = if (isSelected) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        MaterialTheme.colorScheme.outlineVariant
+                    }
                 )
             ) {
                 ProductImage(
