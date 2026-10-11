@@ -40,11 +40,17 @@ import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.ImageLoader
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.sp
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
 
 private const val DETAIL_IMAGE_ASPECT_RATIO = 0.82f
 
@@ -56,7 +62,8 @@ fun ProductDetailsScreen(
     onVariantSelected: (String) -> Unit,
     imageLoader: ImageLoader,
     catalogueProducts: List<Product> = emptyList(),
-    onColourSelected: (String) -> Unit = {}
+    onColourSelected: (String) -> Unit = {},
+    externalUrlHandler: ExternalUrlHandler? = null
 ) {
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize()) {
@@ -68,7 +75,8 @@ fun ProductDetailsScreen(
                 onVariantSelected = onVariantSelected,
                 imageLoader = imageLoader,
                 catalogueProducts = catalogueProducts,
-                onColourSelected = onColourSelected
+                onColourSelected = onColourSelected,
+                externalUrlHandler = externalUrlHandler
             )
         }
     }
@@ -128,7 +136,8 @@ private fun ProductDetailsContent(
     onVariantSelected: (String) -> Unit,
     imageLoader: ImageLoader,
     catalogueProducts: List<Product>,
-    onColourSelected: (String) -> Unit
+    onColourSelected: (String) -> Unit,
+    externalUrlHandler: ExternalUrlHandler?
 ) {
     val selectedVariant = product.variants.firstOrNull { it.id == selectedVariantId }
     val displayedPrice = selectedVariant?.rawPrice ?: if (selectedVariant == null) product.rawPrice else null
@@ -174,11 +183,18 @@ private fun ProductDetailsContent(
             modifier = Modifier.padding(horizontal = dimensionResource(R.dimen.catalogue_padding)),
             verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.product_label_spacing))
         ) {
-            product.labels.forEach { label -> ProductBadge(label) }
+            // 1. Wrap the labels in a Row to arrange them horizontally
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.product_label_spacing)),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                product.labels.forEach { label ->
+                    ProductBadge(label)
+                }
+            }
             Text(
                 product.title,
                 modifier = Modifier
-                    .padding(top = 8.dp)
                     .testTag("product_details_title"),
                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
             )
@@ -202,7 +218,7 @@ private fun ProductDetailsContent(
             if (product.variants.isNotEmpty()) {
                 VariantSelector(product, selectedVariantId, onVariantSelected)
             }
-            ProductDescriptionSection(product.descriptionHtml)
+            ProductDescriptionSection(product.descriptionHtml, externalUrlHandler)
         }
     }
 }
@@ -362,8 +378,16 @@ private fun VariantSelector(product: Product, selectedVariantId: String?, onVari
 }
 
 @Composable
-private fun ProductDescriptionSection(html: String?) {
+internal fun ProductDescriptionSection(
+    html: String?,
+    externalUrlHandler: ExternalUrlHandler? = null
+) {
     var expanded by remember { mutableStateOf(true) }
+    var linkUnavailable by remember { mutableStateOf(false) }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val urlHandler = externalUrlHandler ?: remember(context) {
+        ExternalUrlHandler { url -> openExternalProductUrl(context, url) }
+    }
     val stateDescription = stringResource(
         if (expanded) R.string.product_description_expanded else R.string.product_description_collapsed
     )
@@ -384,12 +408,48 @@ private fun ProductDescriptionSection(html: String?) {
         }
         if (expanded) {
             Text(
-                text = annotatedProductDescription(html)
-                    ?: androidx.compose.ui.text.AnnotatedString(stringResource(R.string.product_description_unavailable)),
+                text = annotatedProductDescription(
+                    html,
+                    onUrlClick = { url ->
+                        val opened = urlHandler.open(url)
+                        linkUnavailable = !opened
+                        opened
+                    }
+                )
+                    ?: AnnotatedString(
+                        stringResource(R.string.product_description_unavailable)
+                    ),
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    lineHeight = 22.sp
+                ),
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier
                     .padding(bottom = 16.dp)
                     .testTag("product_description_body")
             )
+            if (linkUnavailable) {
+                Text(
+                    text = stringResource(R.string.product_description_link_unavailable),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag("product_description_link_feedback")
+                )
+            }
         }
+    }
+}
+
+private fun openExternalProductUrl(context: Context, url: String): Boolean {
+    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+        .addCategory(Intent.CATEGORY_BROWSABLE)
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    return try {
+        // Start directly: package-visibility rules can make resolveActivity return null
+        // even when the device has a browser capable of handling HTTPS links.
+        context.startActivity(intent)
+        true
+    } catch (_: ActivityNotFoundException) {
+        false
+    } catch (_: SecurityException) {
+        false
     }
 }

@@ -1,6 +1,5 @@
 package com.jovinyap.productchallenge
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.activity.compose.BackHandler
@@ -14,6 +13,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -23,8 +23,11 @@ import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.ImageLoader
 import coil3.SingletonImageLoader
@@ -78,20 +81,25 @@ fun ProductListScreen(
     val fontScale = LocalDensity.current.fontScale
     Surface(modifier = modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize().safeDrawingPadding()) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(padding),
-                horizontalArrangement = Arrangement.spacedBy(spacing),
-                verticalAlignment = Alignment.CenterVertically
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = padding, vertical = dimensionResource(R.dimen.catalogue_grid_padding_vertical)),
+                contentAlignment = Alignment.Center
             ) {
                 Image(
                     painterResource(R.drawable.gymshark_logo),
                     contentDescription = null,
-                    modifier = Modifier.size(
+                    modifier = Modifier.align(Alignment.CenterStart).size(
                         dimensionResource(R.dimen.catalogue_logo_width),
                         dimensionResource(R.dimen.catalogue_logo_height)
                     )
                 )
-                Text(stringResource(R.string.catalogue_title), style = MaterialTheme.typography.headlineSmall)
+                Text(
+                    stringResource(R.string.catalogue_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
             }
             HorizontalDivider()
             Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -118,7 +126,7 @@ fun ProductListScreen(
                         }
                     }
                     is ProductListUiState.Content -> {
-                        // Keep adaptive columns at normal scale, but give large text a single readable column.
+                        // Keep two catalogue columns at normal scale, but give large text a single readable column.
                         if (fontScale >= LARGE_FONT_SCALE_THRESHOLD) {
                             Box(
                                 modifier = Modifier
@@ -128,29 +136,30 @@ fun ProductListScreen(
                             ) {
                                 Column(
                                     modifier = Modifier.fillMaxWidth(),
-                                    verticalArrangement = Arrangement.spacedBy(spacing)
+                                    verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.catalogue_row_spacing))
                                 ) {
                                     uiState.products.forEach { product ->
-                                        ProductCard(
-                                            product,
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(horizontal = padding),
-                                            selected = product.id == uiState.selectedProductId,
-                                            onProductSelected = onProductSelected,
-                                            imageLoader = imageLoader
-                                        )
+                                        key(product.id) {
+                                            ProductCard(
+                                                product = product,
+                                                modifier = Modifier.fillMaxWidth(),
+                                                selected = product.id == uiState.selectedProductId,
+                                                onProductSelected = onProductSelected,
+                                                imageLoader = imageLoader,
+                                                largeText = true
+                                            )
+                                        }
                                     }
                                 }
                             }
                         } else {
                             LazyVerticalGrid(
-                                columns = GridCells.Adaptive(dimensionResource(R.dimen.product_card_min_width)),
+                                columns = GridCells.Fixed(2),
                                 state = gridState,
                                 modifier = Modifier.fillMaxSize().testTag("product_grid"),
-                                contentPadding = PaddingValues(padding),
+                                contentPadding = PaddingValues(vertical = dimensionResource(R.dimen.catalogue_grid_padding_vertical)),
                                 horizontalArrangement = Arrangement.spacedBy(spacing),
-                                verticalArrangement = Arrangement.spacedBy(spacing)
+                                verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.catalogue_row_spacing))
                             ) {
                                 // Stable product IDs keep each image and card attached to the correct record.
                                 items(uiState.products, key = { it.id }) { product ->
@@ -159,7 +168,8 @@ fun ProductListScreen(
                                         modifier = Modifier.fillMaxWidth(),
                                         selected = product.id == uiState.selectedProductId,
                                         onProductSelected = onProductSelected,
-                                        imageLoader = imageLoader
+                                        imageLoader = imageLoader,
+                                        largeText = false
                                     )
                                 }
                             }
@@ -177,15 +187,13 @@ private fun ProductCard(
     modifier: Modifier = Modifier,
     selected: Boolean,
     onProductSelected: (String) -> Unit,
-    imageLoader: ImageLoader
+    imageLoader: ImageLoader,
+    largeText: Boolean
 ) {
-    Card(
+    Column(
         modifier = modifier.testTag("product_card_${product.id}")
             // Selection is conveyed through semantics, not encoded in the test tag.
             .selectable(selected = selected, role = Role.Button, onClick = { onProductSelected(product.id) }),
-        border = if (selected) BorderStroke(
-            dimensionResource(R.dimen.product_card_selected_border), MaterialTheme.colorScheme.primary
-        ) else null
     ) {
         // Image loading is independent of selection: fallback cards remain selectable.
         ProductImage(
@@ -193,6 +201,8 @@ private fun ProductCard(
             productTitle = product.title,
             imageAlt = product.imageAlt,
             imageLoader = imageLoader,
+            aspectRatio = 1692f / 2018f, // Width divided by height.
+            contentScale = ContentScale.Fit,
             overlay = {
                 FlowRow(
                     modifier = Modifier
@@ -202,9 +212,9 @@ private fun ProductCard(
                     verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.product_label_spacing))
                 ) {
                     product.labels.forEach { label ->
-                        Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.small) {
+                        Surface(color = MaterialTheme.colorScheme.surface) {
                             Text(
-                                label,
+                                text = label.replace('-', ' ').trim(),
                                 style = MaterialTheme.typography.labelSmall,
                                 modifier = Modifier.padding(
                                     horizontal = dimensionResource(R.dimen.product_label_padding_horizontal),
@@ -217,28 +227,40 @@ private fun ProductCard(
             }
         )
         Column(
-            modifier = Modifier.padding(dimensionResource(R.dimen.product_card_padding)),
-            verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.product_label_spacing))
+            modifier = Modifier.padding(
+                horizontal = dimensionResource(R.dimen.product_card_padding),
+                vertical = 4.dp
+            ),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
-            Text(product.title, style = MaterialTheme.typography.titleSmall, minLines = 2, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Text(
-                text = product.colour.orEmpty(),
+                text = product.title,
+                style = MaterialTheme.typography.titleSmall,
+                minLines = if (largeText) 1 else 2,
+                maxLines = if (largeText) Int.MAX_VALUE else 2,
+                overflow = if (largeText) TextOverflow.Clip else TextOverflow.Ellipsis
+            )
+
+            // Keep fit and colour in stable rows so prices align across a grid row.
+            Text(
+                text = product.fit ?: "\u00A0",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                minLines = 2,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
+                maxLines = if (largeText) Int.MAX_VALUE else 1,
+                overflow = if (largeText) TextOverflow.Clip else TextOverflow.Ellipsis
             )
             Text(
-                text = product.fit ?: " ",
+                text = product.colour ?: "\u00A0",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                maxLines = if (largeText) Int.MAX_VALUE else 1,
+                overflow = if (largeText) TextOverflow.Clip else TextOverflow.Ellipsis
             )
+
             Text(
                 text = formatGbpPrice(product.rawPrice),
-                style = MaterialTheme.typography.bodyMedium
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold
             )
         }
     }

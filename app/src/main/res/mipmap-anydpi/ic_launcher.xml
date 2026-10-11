@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item>
+        <shape android:shape="rectangle">
+            <size
+                android:width="48dp"
+                android:height="48dp" />
+            <solid android:color="@android:color/white" />
+        </shape>
+    </item>
+
+    <item
+        android:width="48dp"
+        android:height="27dp"
+        android:gravity="center">
+
+        <bitmap
+            android:src="@drawable/gymshark_logo"
+            android:gravity="fill"
+            android:filter="true" />
+
+    </item>
+
+</layer-list>
