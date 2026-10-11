@@ -52,7 +52,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 
-private const val DETAIL_IMAGE_ASPECT_RATIO = 0.82f
+private const val DETAIL_IMAGE_ASPECT_RATIO = 1692f / 2018f
 
 @Composable
 fun ProductDetailsScreen(
@@ -150,10 +150,8 @@ private fun ProductDetailsContent(
             .testTag("product_details_content"),
         verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.catalogue_spacing))
     ) {
-        ProductImage(
-            imageUrl = product.imageUrl,
-            productTitle = product.title,
-            imageAlt = product.imageAlt,
+        ProductImageGallery(
+            product = product,
             imageLoader = imageLoader,
             aspectRatio = DETAIL_IMAGE_ASPECT_RATIO,
             overlay = {

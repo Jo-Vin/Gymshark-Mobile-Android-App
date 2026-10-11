@@ -18,16 +18,15 @@ class ProductMapper {
 
         if (price < 0L) return null
 
-        // Use the featured image first, then the first gallery entry with a non-blank URL.
-        // URL validity and download failures are handled by ProductImage, not by this mapper.
-        val featuredImage = dto.featuredMedia?.takeIf {
-            !it.src.isNullOrBlank()
-        }
-
-        val image = featuredImage
-            ?: dto.media.orEmpty().firstOrNull {
-                !it.src.isNullOrBlank()
+        // Preserve the supplied order, putting the featured photo first and removing
+        // duplicate URLs. URL validity and download failures remain ProductImage's job.
+        val galleryImages = (listOfNotNull(dto.featuredMedia) + dto.media.orEmpty())
+            .mapNotNull { media ->
+                val url = media.src.nonBlank() ?: return@mapNotNull null
+                ProductPhoto(url = url, alt = media.alt.nonBlank())
             }
+            .distinctBy(ProductPhoto::url)
+        val image = galleryImages.firstOrNull()
 
         return Product(
             id = id,
@@ -35,8 +34,8 @@ class ProductMapper {
             rawPrice = price,
             colour = dto.colour.nonBlank(),
             descriptionHtml = dto.description,
-            imageUrl = image?.src.nonBlank(),
-            imageAlt = image?.alt.nonBlank(),
+            imageUrl = image?.url,
+            imageAlt = image?.alt,
             labels = dto.labels.orEmpty(),
             fit = dto.fit.nonBlank(),
             variants = dto.availableSizes.orEmpty().mapNotNull { variant ->
@@ -45,7 +44,8 @@ class ProductMapper {
                 ProductVariant(variantId, size, variant.price, variant.inStock)
             },
             productType = dto.type.nonBlank(),
-        gender = dto.gender.orEmpty().joinToString("|").nonBlank()
+            gender = dto.gender.orEmpty().joinToString("|").nonBlank(),
+            galleryImages = galleryImages
         )
     }
 
