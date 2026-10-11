@@ -3,6 +3,8 @@
     <string name="app_name">Gymshark Product Challenge</string>
     <string name="image_unavailable">Image Unavailable</string>
     <string name="product_image_description">Photo of %1$s</string>
+    <string name="product_gallery_image_description">Photo of %1$s, image %2$d of %3$d</string>
+    <string name="product_gallery_position">Image %1$d of %2$d</string>
     <string name="catalogue_title">Products</string>
     <string name="catalogue_loading">Loading products…</string>
     <string name="catalogue_empty">No products available.</string>
