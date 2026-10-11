@@ -23,6 +23,7 @@ private fun Product.colourFamilyKey(): String? {
 
 private fun String?.normalisedOrNull(): String? = this
     ?.trim()
+    ?.replace(Regex("\\s+"), " ")
     ?.takeIf { it.isNotEmpty() }
     ?.uppercase(Locale.ROOT)
 
