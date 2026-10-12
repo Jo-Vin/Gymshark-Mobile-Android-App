@@ -1,150 +1,144 @@
+
 # Gymshark Product Challenge
 
-Android application for the Gymshark Mobile Engineering Challenge,
-built with Kotlin and Jetpack Compose.
+An Android product-browsing application for the Gymshark Mobile Engineering Challenge, built with Kotlin, Jetpack Compose and MVVM.
 
-## Current status
+## Implemented scope
 
-Stages 1–5 connect catalogue retrieval, screen state and the Compose product grid.
+The application implements the required catalogue journey:
 
-- Single Android app module.
-- Adaptive Compose grid displaying product images, titles, colours and labels.
-- Robolectric smoke test.
-- Catalogue ViewModel with loading, content, empty, error, retry and product selection.
-- Shared Compose behaviour checks run with Robolectric and on a connected Android device.
-- GitHub Actions verification is being configured.
+- Retrieves and decodes the supplied Gymshark product JSON.
+- Displays an adaptive product grid with titles, GBP prices, colours, fit and labels.
+- Shows explicit loading, empty, content and error states, with retry after a failed request.
+- Handles missing, invalid and failed image URLs with a local Gymshark fallback and a loading indicator.
+- Opens product details using the product's stable identifier.
+- Displays all supplied product photographs in a swipeable detail gallery with position indicators.
+- Switches between related colour products using a documented fallback grouping rule.
+- Displays the product price until a size is selected, then displays the selected variant price.
+- Keeps XS, S, M, L, XL and XXL visible, appends additional supplied sizes, and disables unavailable sizes with a strike-through.
+- Renders readable HTML descriptions with paragraphs, entities, Unicode and basic emphasis.
+- Preserves supported absolute HTTPS links in descriptions and opens them through an external Android application.
 
-Product details and HTML description rendering are implemented as the next increment.
-
-## Requirements
-
-The completed application will:
-
-- Fetch and parse the supplied product JSON.
-- Display products with images, titles, prices, colours and labels.
-- Handle missing or failed images gracefully.
-- Show further product information when a product is selected.
-- Present HTML descriptions appropriately.
-
-Prices are GBP minor units: the list displays the product-level price, while details
-show the product price until a variant is selected and then show that variant's price.
-Variants with no price are reported as unavailable. Details use the native Android
-HTML parser for readable paragraphs, entities, Unicode and basic text spans after
-removing script/style and known translator-wrapper markup. This is intentionally not
-claimed to be comprehensive HTML sanitisation, and no WebView is used.
-
-The implementation will use MVVM and focused unit tests, developed through
-test-driven development.
+Search, filters, authentication, checkout, persistent catalogue caching and Kotlin Multiplatform are outside the assessment brief and are not implemented. The app remains a single Android module so the required journey stays small, testable and reviewable.
 
 ## Setup
 
 1. Open the repository in Android Studio.
-2. Configure the Gradle JDK as JDK 17 or 21 (local verification uses JDK 21).
-3. Install Android SDK Platform 36 and Build Tools 35.0.0.
-4. Allow Gradle to sync.
-5. Select an emulator or connected Android device and run the app.
+2. Configure the Gradle JDK as JDK 17, matching CI.
+3. Install Android SDK Platform 36 and a compatible Android Build Tools package through SDK Manager.
+4. Allow Gradle to sync, then select an emulator or connected device.
+5. Run the `app` configuration.
 
-The SDK location belongs in local.properties, which is excluded from Git.
+The app supports Android 6.0 and later (`minSdk 23`). It compiles against and targets SDK 36. The SDK path belongs in ignored `local.properties`. The Gradle wrapper pins the Gradle version, and dependency/plugin versions are centralised in `gradle/libs.versions.toml`.
 
-Dependency and plugin versions are defined in gradle/libs.versions.toml.
-The Gradle wrapper provides the project's Gradle version.
+The application ID and Kotlin namespace are `com.jovinyap.productchallenge`. The manifest declares the `INTERNET` permission because catalogue and image requests are remote.
 
-## SDK decisions
+## Architecture
 
-- Minimum SDK: 23, supporting Android 6.0 and later.
-- Compile SDK: 36.
-- Target SDK: 36.
+`ProductApplication` creates the production repository and shared `OkHttpClient`. `MainActivity` obtains a retained `ProductListViewModel` through a ViewModel factory. The ViewModel owns presentation state and user actions; Compose renders that state and emits callbacks.
 
-Minimum SDK 23 was chosen for broad device compatibility within the assessment.
-These choices can be revisited if the requirements change.
+```mermaid
+flowchart TB
+    App["ProductApplication"] --> Repo["ProductRepository"]
+    Activity["MainActivity"] --> VM["ProductListViewModel"]
+    Repo -.->|Implemented by| Remote["RemoteProductRepository"]
+    Activity --> UI["Compose UI"]
 
-## Verification
+    UI -->|User actions| VM
+    VM -->|Read-only StateFlow| UI
+    VM -->|Suspend fetchProducts| Repo
 
-From PowerShell in the repository root:
+    Remote -->|Asynchronous GET| HTTP["OkHttp"]
+    Remote -->|Raw JSON| Parser["ProductPayloadParser"]
+    Parser -->|ProductDto records| Mapper["ProductMapper"]
+    Mapper -->|Validated Product models| Remote
 
-```powershell
-.\gradlew.bat :app:testDebugUnitTest
-.\gradlew.bat :app:lintDebug
-.\gradlew.bat :app:assembleDebug
-.\gradlew.bat :app:connectedDebugAndroidTest # Requires an available device or emulator
+    UI --> List["ProductListScreen"]
+    UI --> Details["ProductDetailsScreen"]
+    Details --> Gallery["ProductImageGallery"]
+    Gallery --> Image["ProductImage"]
+    Image -->|ImageLoader| Coil["Coil"]
+    Details --> Description["ProductDescriptionSection"]
+    Description -->|Validated HTTPS link| Android["Android external URL handler"]
 ```
 
-On macOS or Linux, use ./gradlew instead of .\gradlew.bat.
+The repository invokes the parser first and passes the decoded DTOs to the mapper. The parser is responsible for JSON decoding; the mapper validates required identity, title and non-negative price fields, then creates presentation-ready `Product` models while preserving optional data where possible.
 
-The debug APK is generated at:
+`ProductListRoute` collects the ViewModel's read-only `StateFlow` with `collectAsStateWithLifecycle`. List and detail composables do not know how data is downloaded. Catalogue loading, retry, product navigation, colour selection and size selection remain in the ViewModel. Manual constructor injection keeps the network and repository boundaries replaceable in tests without introducing an additional dependency-injection framework.
 
-app/build/outputs/apk/debug/app-debug.apk
+## Data and networking decisions
 
-The Robolectric smoke test checks application startup behaviour.
-Visual appearance and interaction must also be verified on a device or emulator.
+`RemoteProductRepository` accepts an injected `okhttp3.Call.Factory`. Production uses one shared `OkHttpClient`; tests provide controlled fake calls. OkHttp callbacks are bridged to a suspend function with `suspendCancellableCoroutine`, so cancellation cancels the underlying call. Response bodies are closed on success, failure and late response. JSON decoding and mapping run on an injected dispatcher, which defaults to `Dispatchers.Default`.
 
-## Catalogue retrieval
+Network failures, unsuccessful HTTP responses and malformed JSON remain observable exceptions. A valid empty `hits` array is represented as an empty catalogue. The ViewModel converts expected retrieval/decoding failures into its explicit error state, while cancellation is allowed to propagate.
 
-`ProductRepository.fetchProducts()` returns the existing displayable `Product` models.
-`RemoteProductRepository` takes an injected `okhttp3.Call.Factory`; a shared
-`OkHttpClient` implements this interface, while tests supply fake calls. OkHttp
-4.12.0 was already present through Coil, so it is now declared directly rather
-than introducing another HTTP client. Coroutine dependencies are also declared
-explicitly, with `kotlinx-coroutines-test` used for deterministic tests.
-
-A GET retrieves the supplied Gymshark catalogue endpoint. OkHttp performs the
-request and response-body read on its worker thread. The existing parser decodes
-the JSON and the existing mapper validates and normalises it on an injected
-dispatcher (production default: `Dispatchers.Default`). Cancellation cancels the
-HTTP call, and responses are closed on success, failure and late arrival.
-Network errors, unsuccessful HTTP statuses and malformed JSON remain exceptions
-for the caller to handle. Valid empty catalogues return an empty list; the mapper
-continues to exclude unusable records according to its existing policy.
-
-Repository tests use the local saved JSON fixture and controlled callbacks, never
-the live endpoint. Their GS-MOB-001 and GS-MOB-002 references provide partial
-evidence for retrieval and decoding, not live CDN availability or UI behaviour.
-`ProductListViewModel` now consumes the repository contract and exposes read-only
-`StateFlow<ProductListUiState>`. It loads once on creation, supports retry after
-network or decoding failure, and cancels work when cleared. Tests control responses
-with a fake repository and a test main dispatcher, without network calls or delays.
-
-`ProductApplication` owns the real repository and one shared OkHttp client.
-`MainActivity` obtains a retained ViewModel through `ViewModelProvider`.
-`ProductListRoute` observes state with `collectAsStateWithLifecycle`, while
-`ProductListScreen` renders states and sends retry/selection callbacks. Cards use
-stable product IDs and the existing `ProductImage` component; image loading or
-failure does not prevent selection. Selecting a card highlights it and records
-its ID. Selecting a card opens its detail view by stable product ID; the detail view
-uses the selected variant price when a variant is chosen and otherwise shows the
-product-level GBP minor-unit price. A missing variant price is shown as unavailable.
-The description is rendered with Android's native HTML parser after removing script,
-style and known translator-wrapper markup. This supports readable paragraphs,
-entities, Unicode and basic bold/italic/underline spans; it is deliberately not
-claimed to be comprehensive HTML sanitisation and does not use a WebView.
-The detail presentation uses a fixed safe app bar, a full-width portrait image,
-wrapped outlined size controls and an expanded-by-default Description section. Screenshot-only
-features such as reviews, wishlist, sharing, checkout, delivery claims and
-recommendations remain intentionally unsupported.
-The detail selector assumes the assessment baseline sizes XS, S, M, L, XL and XXL;
-payload sizes outside that range are appended in payload order. A size is selectable
-only when its variant explicitly reports `inStock: true`.
-
-The colour thumbnail enhancement uses a conservative fallback because the supplied
-payload has no explicit product-family ID. Products are grouped only when their
-normalised title, product type, gender and fit all match; stable IDs and colours
-remain distinct. This avoids treating identical titles with different categories
-or fits as related, but cannot prove a family relationship when the source data
-omits one. Colour switching reuses the loaded catalogue, resets the selected size,
-and shows the newly selected product's own image, content and price.
-
-`ProductListUiChecks` is shared between the Robolectric and instrumented runners.
-It controls repository responses and image results locally, checking content,
-loading, empty/error/retry, scrolling, selection and image accessibility. Existing
-GS-MOB references provide partial component evidence, not full assessment
-verification, real CDN reliability, TalkBack usability or visual correctness.
-A manual check on the connected Samsung Android 16 phone confirmed that the real
-catalogue and product photos load. Automated tests still use fake responses.
-Local verification completed 58 unit tests, lint (warnings only) and debug assembly.
-All eight instrumented checks passed on the unlocked phone. A subsequent run was
-blocked by the locked phone and needs repeating with the screen unlocked.
-No persistent catalogue cache is implemented.
+Coil loads images independently from catalogue retrieval. The image component accepts only absolute HTTPS URLs, preserves a stable layout while loading, and uses the local Gymshark logo plus explanatory text for missing, invalid or failed images. The detail gallery places featured media first, removes blank and duplicate URLs, preserves the remaining supplied order and uses `ContentScale.Fit` so the complete photograph remains visible.
 
 ## Assumptions and decisions
 
-- Search, filters, checkout and authentication are outside the required scope.
+| Topic | Applied rule | Reason or limitation |
+| --- | --- | --- |
+| Currency and units | Treat API price integers as GBP minor units and format them as pounds and pence. | The payload did not define units; I spoke to Alexander I. regarding this for clarification of the pricing structure. |
+| Product pricing | The grid shows product-level price. Details show that price until a size is selected, then show the selected variant price. A missing variant price is shown as unavailable. | Avoids inventing a value when a variant has no price. |
+| Related colours | Group products only when normalised title, product type, gender and fit match. | The payload has no authoritative product-family identifier, so this is a conservative fallback. |
+| Sizes and stock | Show XS–XXL first, retain additional payload sizes, and allow selection only when `inStock == true`. | Missing, false or unknown stock is treated as unavailable. |
+| Incomplete products | Exclude records without a usable ID, title or non-negative price. Preserve nullable optional fields. | The UI cannot safely identify or price a record that fails these required checks. |
+| HTML | Use Android's native HTML parser with targeted cleanup for scripts, styles and known translator wrappers. Support basic emphasis and validated absolute HTTPS links. | This is readable text rendering, not a general HTML sanitiser or WebView. |
+| Rotation | `ViewModelProvider` retains the ViewModel across Activity recreation, avoiding a second catalogue request during ordinary rotation. | Selected IDs are not restored after process death because `SavedStateHandle` is not implemented. |
+
+## Testing and verification
+
+Run from the repository root:
+
+```powershell
+.\\gradlew.bat :app:testDebugUnitTest
+.\\gradlew.bat :app:lintDebug
+.\\gradlew.bat :app:assembleDebug
+.\\gradlew.bat :app:connectedDebugAndroidTest
+```
+
+On macOS or Linux, use `./gradlew` instead of `.\\gradlew.bat`. The connected-device command requires an available and unlocked device or emulator. The debug APK is generated at `app/build/outputs/apk/debug/app-debug.apk`.
+
+The test suite covers parser and mapper behaviour, price formatting, image URL and loading states, gallery mapping, HTML cleanup and links, ViewModel state transitions and cancellation, repository failures, size availability, colour grouping and Compose behaviour. Repository tests use the saved JSON fixture and controlled callbacks; they never call the live CDN.
+
+The GitHub Actions workflow runs on pushes and pull requests targeting `main` and performs:
+
+1. `:app:testDebugUnitTest`
+2. `:app:lintDebug`
+3. `:app:assembleDebug`
+
+Connected-device tests are kept separate because they require a physical device or emulator. Passing CI provides evidence for the configured unit-test, lint and debug-build checks; it does not prove live CDN reliability, every visual detail or complete TalkBack usability.
+
+The initial parser increment followed a recorded red-green-refactor cycle. Later changes add focused regression tests before or alongside implementation, with requirement references in the tests where the mapping is direct. Test names and comments are evidence of exercised behaviour, not a claim that every requirement is fully covered on every device.
+
+## Requirements and traceability
+
+The [requirements sheet](https://docs.google.com/spreadsheets/d/1uxhjZrefBlAgYI7_xCwYuCZMmtnH3zr-vEn0OgE3W0A/edit?gid=0#gid=0) is the acceptance and traceability record. It contains the 37 numbered rows currently used for the submission:
+
+- `GS-MOB-001`–`GS-MOB-029` cover the supplied brief and core engineering expectations.
+- `GS-MOB-030`–`GS-MOB-034` describe the related-colour, size and variant-price enhancements.
+- `GS-MOB-035`–`GS-MOB-037` describe clickable HTTPS description links, the multi-photo gallery and the Gymshark-inspired responsive card design.
+
+Rows 030–033 are derived definitions supplied for the current master sheet. The enhancement and design rows are clearly labelled so optional work is not presented as an original mandatory brief requirement.
+
+The [design and decision working notes](https://docs.google.com/document/d/1SUF0EtdFnyNWRxBMBRo9MiI3itb_VbYZjgUYwwmgmNo/edit?tab=t.5gnfbuiie62o) contain the fuller journey from brief to requirements, design, architecture, assumptions, trade-offs and future ideas. They are supplementary to this README and may continue to receive editorial updates after submission.
+
+## Known limitations and future work
+
+- No persistent offline catalogue cache is implemented.
+- Selected product and variant IDs are not restored after process death.
+- Colour grouping is inferred from metadata and cannot guarantee an authoritative family relationship.
+- Product photographs are supported; video links in descriptions open externally rather than being embedded.
+- Search, filtering, authentication, checkout, wishlist, reviews and recommendations are outside the submitted scope.
+
+## AI usage
+
+I used my experience of Android and software development to lay out a structured plan going from brief to requirements then to testing and code implementation. ChatGPT and Codex were used as development assistants for planning increments, analysing the supplied payload, exploring Kotlin and Jetpack Compose approaches, drafting tests and documentation, and investigating failures.
+
+AI helped accelerate exploration coverage given the time constraint, but I remained responsible for the engineering decisions, verification and conducting user testing. I compared suggestions with the brief, the actual payload, device behaviour and test results.
+
+An initial data review helped identify incomplete records and malformed values, but it did not identify every important product behaviour. I manually discovered that descriptions contained HTTPS and YouTube links, some products had multiple photographs, and related colours were represented as separate records. I added requirements and implemented bounded solutions to make product discovery and product family grouping more intuitive to reduce the effort required to find colour variations.
+
+I deliberately kept filters, checkout, authentication, persistent caching and Kotlin Multiplatform outside the submission because they were not required by the brief.
+
+AI output was treated as a proposal requiring human review and verification through unit tests, Robolectric Compose tests, instrumented checks, lint, debug builds and manual device testing.
