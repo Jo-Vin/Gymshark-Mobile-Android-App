@@ -142,3 +142,7 @@ An initial data review helped identify incomplete records and malformed values, 
 I deliberately kept filters, checkout, authentication, persistent caching and Kotlin Multiplatform outside the submission because they were not required by the brief.
 
 AI output was treated as a proposal requiring human review and verification through unit tests, Robolectric Compose tests, instrumented checks, lint, debug builds and manual device testing.
+
+## Next Stage of Development
+
+Time permitting, potential future work includes search, filtering, analytics for unavailable-size demand, offline caching, richer model metadata and more advanced product visualisation. These were excluded from the assessment to protect the core user journey and verification quality.
